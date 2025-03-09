@@ -1,0 +1,14 @@
+<svg viewBox="0 0 300 800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="noise2">
+      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" />
+      <feDisplacementMap in="SourceGraphic" scale="12" />
+    </filter>
+  </defs>
+  <circle cx="200" cy="180" r="80" fill="#ff7b00" filter="url(#noise2)" opacity="0.8" />
+  <circle cx="220" cy="380" r="60" fill="#ff9500" filter="url(#noise2)" opacity="0.7" />
+  <circle cx="180" cy="550" r="75" fill="#ff7b00" filter="url(#noise2)" opacity="0.9" />
+  <circle cx="230" cy="700" r="50" fill="#ff8a00" filter="url(#noise2)" opacity="0.8" />
+  <circle cx="160" cy="100" r="45" fill="#ff9500" filter="url(#noise2)" opacity="0.6" />
+  <circle cx="190" cy="280" r="35" fill="#ff8a00" filter="url(#noise2)" opacity="0.7" />
+</svg>

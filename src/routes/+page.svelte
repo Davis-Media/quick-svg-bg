@@ -139,7 +139,12 @@
 	};
 </script>
 
-<main class="flex flex-col items-center p-8">
+<svelte:head>
+	<title>Quick SVG Background</title>
+	<meta name="description" content="Quickly add a background to your SVGs" />
+</svelte:head>
+
+<main class="flex grow flex-col items-center justify-center p-8">
 	<h1 class="mb-6 text-2xl font-bold">Quick SVG Background</h1>
 
 	<div class="mb-8">
@@ -151,10 +156,10 @@
 				onchange={(e) => handleFileUpload(e)}
 				class="block w-full text-sm text-slate-500
           file:mr-4 file:rounded-md file:border-0
-          file:bg-blue-50 file:px-4
+          file:bg-orange-50 file:px-4
           file:py-2 file:text-sm
-          file:font-semibold file:text-blue-700
-          hover:file:bg-blue-100"
+          file:font-semibold file:text-orange-700
+          hover:file:bg-orange-100"
 			/>
 		</label>
 		<p class="mt-2 text-sm text-gray-600">
@@ -172,18 +177,18 @@
 
 		<div class="mt-4 flex items-center gap-3">
 			<button
-				class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium transition-colors
+				class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium transition-colors hover:cursor-pointer
 				       {bgColorHex === '#ffffff'
-					? 'bg-blue-500 text-white'
+					? 'bg-orange-500 text-white'
 					: 'bg-white text-gray-800 hover:bg-gray-100'}"
 				onclick={setBgColor('#ffffff')}
 			>
 				White
 			</button>
 			<button
-				class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium transition-colors
+				class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium transition-colors hover:cursor-pointer
 				       {bgColorHex === '#000000'
-					? 'bg-blue-500 text-white'
+					? 'bg-orange-500 text-white'
 					: 'bg-black text-white hover:bg-gray-800'}"
 				onclick={setBgColor('#000000')}
 			>
@@ -195,19 +200,31 @@
 		<div class="mt-4 w-full max-w-[400px]">
 			<div class="flex items-center justify-between">
 				<span class="text-sm text-gray-600">Border Radius: {borderRadius}px</span>
-				<input type="range" min="0" max="200" bind:value={borderRadius} class="w-full" />
+				<input
+					type="range"
+					min="0"
+					max="200"
+					bind:value={borderRadius}
+					class="w-full accent-orange-500"
+				/>
 			</div>
 		</div>
 
 		<div class="mt-4 w-full max-w-[400px]">
 			<div class="flex items-center justify-between">
 				<span class="text-sm text-gray-600">Image Width: {imageWidth}%</span>
-				<input type="range" min="10" max="100" bind:value={imageWidth} class="w-full" />
+				<input
+					type="range"
+					min="10"
+					max="100"
+					bind:value={imageWidth}
+					class="w-full accent-orange-500"
+				/>
 			</div>
 		</div>
 
 		<button
-			class="mt-6 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+			class="mt-6 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
 			onclick={copySvgWithBackground}
 		>
 			Copy SVG with Background
