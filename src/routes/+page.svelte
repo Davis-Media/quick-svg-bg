@@ -4,8 +4,8 @@
 	let svgFile = $state<File | null>(null);
 	let svgUrl = $state<string | null>(null);
 	let bgColorHex = $state<string>('#000000');
-	let borderRadius = $state<number>(0);
-	let imageWidth = $state<number>(100);
+	let borderRadius = $state<number>(15);
+	let imageWidth = $state<number>(85);
 
 	$effect(() => {
 		const handleGlobalPaste = (event: ClipboardEvent) => {
