@@ -1,26 +1,58 @@
 <script lang="ts">
 	import ColorPicker from 'svelte-awesome-color-picker';
 	import { Copy, Download } from '@lucide/svelte';
+	import { getSvgPath } from 'figma-squircle';
 
 	let svgFile = $state<File | null>(null);
 	let svgUrl = $state<string | null>(null);
 	let bgColorHex = $state<string>('#000000');
-	let borderRadius = $state<number>(15);
-	let imageWidth = $state<number>(85);
+	let borderRadius = $state<number>(85);
+	let imageWidth = $state<number>(75);
+	let svgElement = $state<SVGElement | null>(null);
+
+	const parseSvgContent = (svgContent: string) => {
+		const parser = new DOMParser();
+		const doc = parser.parseFromString(svgContent, 'image/svg+xml');
+		return doc.documentElement as unknown as SVGElement;
+	};
 
 	$effect(() => {
-		const handleGlobalPaste = (event: ClipboardEvent) => {
+		const handleGlobalPaste = async (event: ClipboardEvent) => {
 			const clipboardData = event.clipboardData;
 			if (!clipboardData) return;
 
-			// Check for SVG file in clipboard
+			// First try to get SVG directly
+			if (clipboardData.types.includes('image/svg+xml')) {
+				try {
+					const svgData = clipboardData.getData('image/svg+xml');
+					if (svgData) {
+						const blob = new Blob([svgData], { type: 'image/svg+xml' });
+						svgFile = new File([blob], 'pasted.svg', { type: 'image/svg+xml' });
+						svgUrl = URL.createObjectURL(blob);
+						svgElement = parseSvgContent(svgData);
+						return;
+					}
+				} catch (error) {
+					console.error('Error getting SVG data:', error);
+				}
+			}
+
+			// Try to get SVG from clipboard items
 			const items = clipboardData.items;
+
 			for (let i = 0; i < items.length; i++) {
-				if (items[i].type === 'image/svg+xml') {
-					const blob = items[i].getAsFile();
+				const item = items[i];
+
+				// Check for SVG file or image
+				if (item.type === 'image/svg+xml') {
+					const blob = item.getAsFile();
 					if (blob) {
 						svgFile = blob;
 						svgUrl = URL.createObjectURL(blob);
+
+						// Parse SVG content
+						const text = await blob.text();
+						svgElement = parseSvgContent(text);
 						return;
 					}
 				}
@@ -28,10 +60,35 @@
 
 			// Check for SVG text content
 			const text = clipboardData.getData('text/plain');
-			if (text && text.trim().startsWith('<svg') && text.includes('</svg>')) {
-				const blob = new Blob([text], { type: 'image/svg+xml' });
-				svgFile = new File([blob], 'pasted.svg', { type: 'image/svg+xml' });
-				svgUrl = URL.createObjectURL(blob);
+			if (text) {
+				const trimmedText = text.trim();
+
+				if (trimmedText.startsWith('<svg') && trimmedText.includes('</svg>')) {
+					const blob = new Blob([text], { type: 'image/svg+xml' });
+					svgFile = new File([blob], 'pasted.svg', { type: 'image/svg+xml' });
+					svgUrl = URL.createObjectURL(blob);
+					svgElement = parseSvgContent(text);
+					return;
+				}
+
+				// Check if the text is a URL to an SVG file
+				if (trimmedText.match(/^https?:\/\/.*\.svg$/i)) {
+					try {
+						const response = await fetch(trimmedText);
+						if (response.ok) {
+							const svgText = await response.text();
+							if (svgText.trim().startsWith('<svg')) {
+								const blob = new Blob([svgText], { type: 'image/svg+xml' });
+								svgFile = new File([blob], 'from-url.svg', { type: 'image/svg+xml' });
+								svgUrl = URL.createObjectURL(blob);
+								svgElement = parseSvgContent(svgText);
+								return;
+							}
+						}
+					} catch (error) {
+						console.error('Error fetching SVG from URL:', error);
+					}
+				}
 			}
 		};
 
@@ -52,6 +109,11 @@
 		if (file && file.type === 'image/svg+xml') {
 			svgFile = file;
 			svgUrl = URL.createObjectURL(file);
+			file.text().then((text) => {
+				const parser = new DOMParser();
+				const doc = parser.parseFromString(text, 'image/svg+xml');
+				svgElement = doc.documentElement as unknown as SVGElement;
+			});
 		} else {
 			alert('Please upload an SVG file');
 			target.value = '';
@@ -60,84 +122,102 @@
 
 	const setBgColor = (color: string) => () => (bgColorHex = color);
 
-	const createSvgWithBackground = async () => {
-		if (!svgUrl) return null;
+	const createSvgWithBackground = (includeDropShadow = false) => {
+		if (!svgElement) return null;
 
-		try {
-			const svgResponse = await fetch(svgUrl);
-			const svgText = await svgResponse.text();
+		const size = 400;
 
-			const parser = new DOMParser();
-			const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
-			const svgElement = svgDoc.documentElement;
+		const newSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		newSvg.setAttribute('width', String(size));
+		newSvg.setAttribute('height', String(size));
+		newSvg.setAttribute('viewBox', `0 0 ${size} ${size}`);
 
-			// Use fixed square dimensions for the background
-			const size = 400;
+		if (includeDropShadow) {
+			// Define drop shadow filter
+			const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+			const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+			filter.setAttribute('id', 'drop-shadow');
+			filter.setAttribute('x', '-20%');
+			filter.setAttribute('y', '-20%');
+			filter.setAttribute('width', '140%');
+			filter.setAttribute('height', '140%');
 
-			// Create a new SVG with background
-			const newSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-			newSvg.setAttribute('width', String(size));
-			newSvg.setAttribute('height', String(size));
-			newSvg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+			const feDropShadow = document.createElementNS('http://www.w3.org/2000/svg', 'feDropShadow');
+			feDropShadow.setAttribute('dx', '0');
+			feDropShadow.setAttribute('dy', '2');
+			feDropShadow.setAttribute('stdDeviation', '3');
+			feDropShadow.setAttribute('flood-opacity', '0.1');
+			feDropShadow.setAttribute('flood-color', '#000');
 
-			// Add background rect
-			const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-			rect.setAttribute('width', '100%');
-			rect.setAttribute('height', '100%');
-			rect.setAttribute('fill', bgColorHex);
-			rect.setAttribute('rx', String(borderRadius));
-			newSvg.appendChild(rect);
-
-			// Get original SVG viewBox for scaling
-			const originalViewBox = svgElement.getAttribute('viewBox')?.split(' ').map(Number) || [
-				0, 0, 100, 100
-			];
-			const originalWidth = originalViewBox[2];
-			const originalHeight = originalViewBox[3];
-
-			// Calculate scale factor based on image width percentage
-			const scaleFactor = imageWidth / 100;
-
-			// Determine the appropriate scale to maintain aspect ratio
-			// and fit within the container while respecting the imageWidth setting
-			const aspectRatio = originalWidth / originalHeight;
-			let scaleX, scaleY;
-
-			if (aspectRatio >= 1) {
-				// Wider than tall
-				scaleX = (size * scaleFactor) / originalWidth;
-				scaleY = scaleX; // Maintain aspect ratio
-			} else {
-				// Taller than wide
-				scaleY = (size * scaleFactor) / originalHeight;
-				scaleX = scaleY; // Maintain aspect ratio
-			}
-
-			// Calculate the scaled dimensions
-			const scaledWidth = originalWidth * scaleX;
-			const scaledHeight = originalHeight * scaleY;
-
-			// Center the SVG in the background
-			const xOffset = (size - scaledWidth) / 2;
-			const yOffset = (size - scaledHeight) / 2;
-
-			// Add the original SVG content in a group with transform
-			const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-			g.setAttribute('transform', `translate(${xOffset}, ${yOffset}) scale(${scaleX}, ${scaleY})`);
-			g.innerHTML = svgElement.innerHTML;
-			newSvg.appendChild(g);
-
-			// Return the serialized SVG
-			const serializer = new XMLSerializer();
-			return serializer.serializeToString(newSvg);
-		} catch (error) {
-			console.error('Error creating SVG:', error);
-			return null;
+			filter.appendChild(feDropShadow);
+			defs.appendChild(filter);
+			newSvg.appendChild(defs);
 		}
+
+		const svgPath = getSvgPath({
+			width: size,
+			height: size,
+			cornerRadius: borderRadius,
+			cornerSmoothing: 0.8,
+			preserveSmoothing: true
+		});
+
+		const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+		path.setAttribute('d', svgPath);
+		path.setAttribute('fill', bgColorHex);
+
+		if (includeDropShadow) {
+			path.setAttribute('filter', 'url(#drop-shadow)');
+		}
+
+		newSvg.appendChild(path);
+
+		const originalViewBox = svgElement.getAttribute('viewBox')?.split(' ').map(Number) || [
+			0, 0, 100, 100
+		];
+		const originalWidth = originalViewBox[2];
+		const originalHeight = originalViewBox[3];
+
+		// Calculate scale factor based on image width percentage
+		const scaleFactor = imageWidth / 100;
+
+		// Determine the appropriate scale to maintain aspect ratio
+		// and fit within the container while respecting the imageWidth setting
+		const aspectRatio = originalWidth / originalHeight;
+		let scaleX, scaleY;
+
+		if (aspectRatio >= 1) {
+			// Wider than tall
+			scaleX = (size * scaleFactor) / originalWidth;
+			scaleY = scaleX; // Maintain aspect ratio
+		} else {
+			// Taller than wide
+			scaleY = (size * scaleFactor) / originalHeight;
+			scaleX = scaleY; // Maintain aspect ratio
+		}
+
+		// Calculate the scaled dimensions
+		const scaledWidth = originalWidth * scaleX;
+		const scaledHeight = originalHeight * scaleY;
+
+		// Center the SVG in the background
+		const xOffset = (size - scaledWidth) / 2;
+		const yOffset = (size - scaledHeight) / 2;
+
+		// Add the original SVG content in a group with transform
+		const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+		g.setAttribute('transform', `translate(${xOffset}, ${yOffset}) scale(${scaleX}, ${scaleY})`);
+		g.innerHTML = svgElement.innerHTML;
+		newSvg.appendChild(g);
+
+		const serializer = new XMLSerializer();
+		return serializer.serializeToString(newSvg);
 	};
 
+	const createPreviewSvgWithBackground = () => createSvgWithBackground(true);
+
 	const copySvgWithBackground = async () => {
-		const svgString = await createSvgWithBackground();
+		const svgString = await createSvgWithBackground(false);
 		if (!svgString) {
 			alert('Failed to copy SVG');
 			return;
@@ -153,7 +233,7 @@
 	};
 
 	const downloadSvgWithBackground = async () => {
-		const svgString = await createSvgWithBackground();
+		const svgString = await createSvgWithBackground(false);
 		if (!svgString) {
 			alert('Failed to download SVG');
 			return;
@@ -213,12 +293,9 @@
 		</p>
 	</div>
 
-	{#if svgUrl}
-		<div
-			class="flex h-[400px] w-[400px] items-center justify-center rounded-md p-4 shadow-md"
-			style="background-color: {bgColorHex}; border-radius: {borderRadius}px;"
-		>
-			<img src={svgUrl} alt="Uploaded SVG" style="width: {imageWidth}%;" class="max-h-full" />
+	{#if svgElement}
+		<div class="flex items-center justify-center">
+			{@html createPreviewSvgWithBackground()}
 		</div>
 
 		<div class="mt-4 flex items-center gap-3">
