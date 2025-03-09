@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ColorPicker from 'svelte-awesome-color-picker';
+	import { Copy, Download } from '@lucide/svelte';
 
 	let svgFile = $state<File | null>(null);
 	let svgUrl = $state<string | null>(null);
@@ -59,8 +60,8 @@
 
 	const setBgColor = (color: string) => () => (bgColorHex = color);
 
-	const copySvgWithBackground = async () => {
-		if (!svgUrl) return;
+	const createSvgWithBackground = async () => {
+		if (!svgUrl) return null;
 
 		try {
 			const svgResponse = await fetch(svgUrl);
@@ -126,15 +127,56 @@
 			g.innerHTML = svgElement.innerHTML;
 			newSvg.appendChild(g);
 
-			// Copy to clipboard
+			// Return the serialized SVG
 			const serializer = new XMLSerializer();
-			const svgString = serializer.serializeToString(newSvg);
-			await navigator.clipboard.writeText(svgString);
+			return serializer.serializeToString(newSvg);
+		} catch (error) {
+			console.error('Error creating SVG:', error);
+			return null;
+		}
+	};
 
+	const copySvgWithBackground = async () => {
+		const svgString = await createSvgWithBackground();
+		if (!svgString) {
+			alert('Failed to copy SVG');
+			return;
+		}
+
+		try {
+			await navigator.clipboard.writeText(svgString);
 			alert('SVG copied to clipboard!');
 		} catch (error) {
 			console.error('Error copying SVG:', error);
 			alert('Failed to copy SVG');
+		}
+	};
+
+	const downloadSvgWithBackground = async () => {
+		const svgString = await createSvgWithBackground();
+		if (!svgString) {
+			alert('Failed to download SVG');
+			return;
+		}
+
+		try {
+			const blob = new Blob([svgString], { type: 'image/svg+xml' });
+			const url = URL.createObjectURL(blob);
+
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = 'svg-with-background.svg';
+			document.body.appendChild(a);
+			a.click();
+
+			// Clean up
+			setTimeout(() => {
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+			}, 100);
+		} catch (error) {
+			console.error('Error downloading SVG:', error);
+			alert('Failed to download SVG');
 		}
 	};
 </script>
@@ -145,7 +187,11 @@
 </svelte:head>
 
 <main class="flex grow flex-col items-center justify-center p-8">
-	<h1 class="mb-6 text-2xl font-bold">Quick SVG Background</h1>
+	<h1 class="pb-4 text-2xl font-bold">Quick SVG Background</h1>
+
+	<p class="pb-8 text-center text-sm text-gray-600">
+		Quickly add a background to your svg. All client side, for free.
+	</p>
 
 	<div class="mb-8">
 		<label class="block">
@@ -223,11 +269,21 @@
 			</div>
 		</div>
 
-		<button
-			class="mt-6 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
-			onclick={copySvgWithBackground}
-		>
-			Copy SVG with Background
-		</button>
+		<div class="mt-6 flex gap-4">
+			<button
+				class="flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+				onclick={copySvgWithBackground}
+			>
+				<Copy class="mr-2 h-4 w-4" />
+				Copy SVG
+			</button>
+			<button
+				class="flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+				onclick={downloadSvgWithBackground}
+			>
+				<Download class="mr-2 h-4 w-4" />
+				Download SVG
+			</button>
+		</div>
 	{/if}
 </main>
