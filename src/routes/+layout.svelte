@@ -3,7 +3,7 @@
 	let { children } = $props();
 </script>
 
-<div class="font-geist relative flex min-h-screen w-screen flex-col overflow-hidden">
+<div class="font-geist relative flex min-h-screen w-screen flex-col overflow-hidden bg-neutral-100">
 	<div
 		class="absolute top-0 left-0 z-0 h-full w-32 bg-contain bg-left bg-no-repeat opacity-70 md:w-40 lg:w-56"
 		style="background-image: url('/images/left-splash.svg')"

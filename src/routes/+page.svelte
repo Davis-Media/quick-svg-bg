@@ -2,11 +2,12 @@
 	import ColorPicker from 'svelte-awesome-color-picker';
 	import { Copy, Download } from '@lucide/svelte';
 	import { getSvgPath } from 'figma-squircle';
+	import { displaySvgD3 } from './displaySvgD3';
 
 	let svgFile = $state<File | null>(null);
 	let svgUrl = $state<string | null>(null);
 	let bgColorHex = $state<string>('#000000');
-	let borderRadius = $state<number>(85);
+	let borderRadius = $state<number>(100);
 	let imageWidth = $state<number>(75);
 	let svgElement = $state<SVGElement | null>(null);
 
@@ -120,9 +121,7 @@
 		}
 	};
 
-	const setBgColor = (color: string) => () => (bgColorHex = color);
-
-	const createSvgWithBackground = (includeDropShadow = false) => {
+	const createSvgWithBackground = () => {
 		if (!svgElement) return null;
 
 		const size = 400;
@@ -131,28 +130,6 @@
 		newSvg.setAttribute('width', String(size));
 		newSvg.setAttribute('height', String(size));
 		newSvg.setAttribute('viewBox', `0 0 ${size} ${size}`);
-
-		if (includeDropShadow) {
-			// Define drop shadow filter
-			const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-			const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
-			filter.setAttribute('id', 'drop-shadow');
-			filter.setAttribute('x', '-20%');
-			filter.setAttribute('y', '-20%');
-			filter.setAttribute('width', '140%');
-			filter.setAttribute('height', '140%');
-
-			const feDropShadow = document.createElementNS('http://www.w3.org/2000/svg', 'feDropShadow');
-			feDropShadow.setAttribute('dx', '0');
-			feDropShadow.setAttribute('dy', '2');
-			feDropShadow.setAttribute('stdDeviation', '3');
-			feDropShadow.setAttribute('flood-opacity', '0.1');
-			feDropShadow.setAttribute('flood-color', '#000');
-
-			filter.appendChild(feDropShadow);
-			defs.appendChild(filter);
-			newSvg.appendChild(defs);
-		}
 
 		const svgPath = getSvgPath({
 			width: size,
@@ -165,11 +142,6 @@
 		const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 		path.setAttribute('d', svgPath);
 		path.setAttribute('fill', bgColorHex);
-
-		if (includeDropShadow) {
-			path.setAttribute('filter', 'url(#drop-shadow)');
-		}
-
 		newSvg.appendChild(path);
 
 		const originalViewBox = svgElement.getAttribute('viewBox')?.split(' ').map(Number) || [
@@ -214,10 +186,8 @@
 		return serializer.serializeToString(newSvg);
 	};
 
-	const createPreviewSvgWithBackground = () => createSvgWithBackground(true);
-
 	const copySvgWithBackground = async () => {
-		const svgString = await createSvgWithBackground(false);
+		const svgString = await createSvgWithBackground();
 		if (!svgString) {
 			alert('Failed to copy SVG');
 			return;
@@ -233,7 +203,7 @@
 	};
 
 	const downloadSvgWithBackground = async () => {
-		const svgString = await createSvgWithBackground(false);
+		const svgString = await createSvgWithBackground();
 		if (!svgString) {
 			alert('Failed to download SVG');
 			return;
@@ -259,6 +229,24 @@
 			alert('Failed to download SVG');
 		}
 	};
+
+	let svgDisplay: HTMLDivElement;
+
+	const { setupSvg, updateSvg, setInnerSvg } = displaySvgD3();
+
+	$effect(() => {
+		setupSvg(svgDisplay);
+	});
+
+	$effect(() => {
+		updateSvg({ borderRadius: borderRadius, bgColorHex: bgColorHex });
+	});
+
+	$effect(() => {
+		if (svgElement) {
+			setInnerSvg({ svgElement: svgElement, imageWidth: imageWidth });
+		}
+	});
 </script>
 
 <svelte:head>
@@ -293,74 +281,72 @@
 		</p>
 	</div>
 
-	{#if svgElement}
-		<div class="flex items-center justify-center">
-			{@html createPreviewSvgWithBackground()}
-		</div>
+	<div class="flex items-center justify-center">
+		<div bind:this={svgDisplay}></div>
+	</div>
 
-		<div class="mt-4 flex items-center gap-3">
-			<button
-				class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium transition-colors hover:cursor-pointer
+	<div class="mt-4 flex items-center gap-3">
+		<button
+			class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium transition-colors hover:cursor-pointer
 				       {bgColorHex === '#ffffff'
-					? 'bg-orange-500 text-white'
-					: 'bg-white text-gray-800 hover:bg-gray-100'}"
-				onclick={setBgColor('#ffffff')}
-			>
-				White
-			</button>
-			<button
-				class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium transition-colors hover:cursor-pointer
+				? 'bg-orange-500 text-white'
+				: 'bg-white text-gray-800 hover:bg-gray-100'}"
+			onclick={() => (bgColorHex = '#ffffff')}
+		>
+			White
+		</button>
+		<button
+			class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium transition-colors hover:cursor-pointer
 				       {bgColorHex === '#000000'
-					? 'bg-orange-500 text-white'
-					: 'bg-black text-white hover:bg-gray-800'}"
-				onclick={setBgColor('#000000')}
-			>
-				Black
-			</button>
-			<ColorPicker bind:hex={bgColorHex} position="responsive" />
-		</div>
+				? 'bg-orange-500 text-white'
+				: 'bg-black text-white hover:bg-gray-800'}"
+			onclick={() => (bgColorHex = '#000000')}
+		>
+			Black
+		</button>
+		<ColorPicker bind:hex={bgColorHex} position="responsive" />
+	</div>
 
-		<div class="mt-4 w-full max-w-[400px]">
-			<div class="flex items-center justify-between">
-				<span class="text-sm text-gray-600">Border Radius: {borderRadius}px</span>
-				<input
-					type="range"
-					min="0"
-					max="200"
-					bind:value={borderRadius}
-					class="w-full accent-orange-500"
-				/>
-			</div>
+	<div class="mt-4 w-full max-w-[400px]">
+		<div class="flex items-center justify-between">
+			<span class="text-sm text-gray-600">Border Radius: {borderRadius}px</span>
+			<input
+				type="range"
+				min="0"
+				max="200"
+				bind:value={borderRadius}
+				class="w-full accent-orange-500"
+			/>
 		</div>
+	</div>
 
-		<div class="mt-4 w-full max-w-[400px]">
-			<div class="flex items-center justify-between">
-				<span class="text-sm text-gray-600">Image Width: {imageWidth}%</span>
-				<input
-					type="range"
-					min="10"
-					max="100"
-					bind:value={imageWidth}
-					class="w-full accent-orange-500"
-				/>
-			</div>
+	<div class="mt-4 w-full max-w-[400px]">
+		<div class="flex items-center justify-between">
+			<span class="text-sm text-gray-600">Image Width: {imageWidth}%</span>
+			<input
+				type="range"
+				min="10"
+				max="100"
+				bind:value={imageWidth}
+				class="w-full accent-orange-500"
+			/>
 		</div>
+	</div>
 
-		<div class="mt-6 flex gap-4">
-			<button
-				class="flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
-				onclick={copySvgWithBackground}
-			>
-				<Copy class="mr-2 h-4 w-4" />
-				Copy SVG
-			</button>
-			<button
-				class="flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
-				onclick={downloadSvgWithBackground}
-			>
-				<Download class="mr-2 h-4 w-4" />
-				Download SVG
-			</button>
-		</div>
-	{/if}
+	<div class="mt-6 flex gap-4">
+		<button
+			class="flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+			onclick={copySvgWithBackground}
+		>
+			<Copy class="mr-2 h-4 w-4" />
+			Copy SVG
+		</button>
+		<button
+			class="flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+			onclick={downloadSvgWithBackground}
+		>
+			<Download class="mr-2 h-4 w-4" />
+			Download SVG
+		</button>
+	</div>
 </main>
