@@ -51,21 +51,27 @@ export const displaySvgD3 = () => {
 		// Clear any existing SVG content
 		svg.selectAll('g').remove();
 
-		// Get the original dimensions from the SVG element itself
-		const svgViewBox = svgElement.getAttribute('viewBox')?.split(' ').map(Number);
-		const originalWidth = svgViewBox
-			? svgViewBox[2]
-			: svgElement.getBoundingClientRect().width || 100;
-		const originalHeight = svgViewBox
-			? svgViewBox[3]
-			: svgElement.getBoundingClientRect().height || 100;
+		// Extract viewBox values from the SVG
+		const svgViewBox = svgElement.getAttribute('viewBox')?.split(/\s+/).map(Number);
+
+		// Get the original dimensions, prioritizing viewBox over getBoundingClientRect
+		const viewBoxWidth = svgViewBox?.[2] || 0;
+		const viewBoxHeight = svgViewBox?.[3] || 0;
+		const viewBoxMinX = svgViewBox?.[0] || 0;
+		const viewBoxMinY = svgViewBox?.[1] || 0;
+
+		// Fallback to getBoundingClientRect if viewBox is not available or invalid
+		const originalWidth = viewBoxWidth || svgElement.getBoundingClientRect().width || 100;
+		const originalHeight = viewBoxHeight || svgElement.getBoundingClientRect().height || 100;
 
 		// Calculate scale factor based on image width percentage
 		const scaleFactor = imageWidth / 100;
 
+		// Calculate the aspect ratio
+		const aspectRatio = originalWidth / originalHeight;
+
 		// Determine the appropriate scale to maintain aspect ratio
 		// and fit within the container while respecting the imageWidth setting
-		const aspectRatio = originalWidth / originalHeight;
 		let scaleX, scaleY;
 
 		if (aspectRatio >= 1) {
@@ -86,18 +92,34 @@ export const displaySvgD3 = () => {
 		const xOffset = (size - scaledWidth) / 2;
 		const yOffset = (size - scaledHeight) / 2;
 
-		innerSvg = svg
+		// Create a new group element for the inner SVG
+		innerSvg = svg.append('g');
+
+		// Clone the SVG content to avoid modifying the original
+		const svgContent = svgElement.cloneNode(true) as SVGElement;
+
+		// Remove any existing transform, width, height attributes that might interfere
+		svgContent.removeAttribute('transform');
+		svgContent.removeAttribute('width');
+		svgContent.removeAttribute('height');
+
+		// Extract all child nodes from the SVG
+		const childNodes = Array.from(svgContent.childNodes);
+
+		// Create a group with proper transformation
+		const contentGroup = innerSvg
 			.append('g')
-			.attr('transform', `translate(${xOffset}, ${yOffset}) scale(${scaleX}, ${scaleY})`);
+			.attr(
+				'transform',
+				`translate(${xOffset - viewBoxMinX * scaleX}, ${yOffset - viewBoxMinY * scaleY}) scale(${scaleX}, ${scaleY})`
+			);
 
-		// Clone the node to avoid potential issues with moving DOM elements
-		const svgElementClone = svgElement.cloneNode(true) as SVGElement;
-
-		// Remove any existing transform attributes that might interfere with centering
-		svgElementClone.removeAttribute('transform');
-
-		// Append the cloned SVG element to the innerSvg
-		innerSvg.node()?.appendChild(svgElementClone);
+		// Append each child node to our new group
+		childNodes.forEach((node) => {
+			if (node.nodeType === Node.ELEMENT_NODE) {
+				contentGroup.node()?.appendChild(node.cloneNode(true));
+			}
+		});
 	};
 
 	return {
