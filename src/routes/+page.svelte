@@ -4,8 +4,6 @@
 	import { getSvgPath } from 'figma-squircle';
 	import { displaySvgD3 } from './displaySvgD3';
 
-	let svgFile = $state<File | null>(null);
-	let svgUrl = $state<string | null>(null);
 	let bgColorHex = $state<string>('#000000');
 	let borderRadius = $state<number>(100);
 	let imageWidth = $state<number>(75);
@@ -27,9 +25,6 @@
 				try {
 					const svgData = clipboardData.getData('image/svg+xml');
 					if (svgData) {
-						const blob = new Blob([svgData], { type: 'image/svg+xml' });
-						svgFile = new File([blob], 'pasted.svg', { type: 'image/svg+xml' });
-						svgUrl = URL.createObjectURL(blob);
 						svgElement = parseSvgContent(svgData);
 						return;
 					}
@@ -48,9 +43,6 @@
 				if (item.type === 'image/svg+xml') {
 					const blob = item.getAsFile();
 					if (blob) {
-						svgFile = blob;
-						svgUrl = URL.createObjectURL(blob);
-
 						// Parse SVG content
 						const text = await blob.text();
 						svgElement = parseSvgContent(text);
@@ -65,9 +57,6 @@
 				const trimmedText = text.trim();
 
 				if (trimmedText.startsWith('<svg') && trimmedText.includes('</svg>')) {
-					const blob = new Blob([text], { type: 'image/svg+xml' });
-					svgFile = new File([blob], 'pasted.svg', { type: 'image/svg+xml' });
-					svgUrl = URL.createObjectURL(blob);
 					svgElement = parseSvgContent(text);
 					return;
 				}
@@ -79,9 +68,6 @@
 						if (response.ok) {
 							const svgText = await response.text();
 							if (svgText.trim().startsWith('<svg')) {
-								const blob = new Blob([svgText], { type: 'image/svg+xml' });
-								svgFile = new File([blob], 'from-url.svg', { type: 'image/svg+xml' });
-								svgUrl = URL.createObjectURL(blob);
 								svgElement = parseSvgContent(svgText);
 								return;
 							}
@@ -108,8 +94,6 @@
 		const target = event.target as HTMLInputElement;
 		const file = target.files![0];
 		if (file && file.type === 'image/svg+xml') {
-			svgFile = file;
-			svgUrl = URL.createObjectURL(file);
 			file.text().then((text) => {
 				const parser = new DOMParser();
 				const doc = parser.parseFromString(text, 'image/svg+xml');
