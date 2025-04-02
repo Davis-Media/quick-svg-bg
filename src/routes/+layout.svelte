@@ -13,6 +13,12 @@
 			document.documentElement.classList.remove('dark');
 		}
 	}
+
+	let isEven = (num: number) => {
+		return num % 2 !== 0;
+	};
+
+	$inspect(isEven(1));
 </script>
 
 <div
