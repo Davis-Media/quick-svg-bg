@@ -318,19 +318,19 @@
 		</div>
 	</div>
 
-	<div class="mt-6 flex gap-4">
+	<div class="mt-10 flex gap-4">
 		<button
-			class="flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+			class="flex text-xl font-bold items-center rounded-md bg-orange-600 px-4 py-3 text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
 			onclick={copySvgWithBackground}
 		>
-			<Copy class="h-5 w-5" />
+			<Copy class="h-7 w-7" strokeWidth={3}/>
 			<span class="ml-2 max-sm:hidden block">Copy SVG</span>
 		</button>
 		<button
-			class="flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+			class="flex text-xl font-bold items-center rounded-md bg-orange-600 px-4 py-3 text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
 			onclick={downloadSvgWithBackground}
 		>
-			<Download class="h-5 w-5" />
+			<Download class="h-7 w-7" strokeWidth={3} />
 			<span class="ml-2 max-sm:hidden block">Download SVG</span>
 		</button>
 	</div>
