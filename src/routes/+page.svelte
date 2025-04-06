@@ -236,23 +236,24 @@
 <svelte:head>
 	<title>Quick SVG Background</title>
 	<meta name="description" content="Quickly add a background to your SVGs" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </svelte:head>
 
 <main class="flex grow flex-col items-center justify-center p-8">
-	<h1 class="pb-4 text-2xl font-bold">Quick SVG Background</h1>
+	<h1 class="pb-4 text-center text-2xl font-bold">Quick SVG Background</h1>
 
 	<p class="pb-8 text-center text-sm text-gray-600">
 		Quickly add a background to your svg. All client side, for free.
 	</p>
 
 	<div class="mb-8">
-		<label class="block">
+		<label class="mb-5 ml-20 flex flex-col items-center justify-center">
 			<span class="sr-only">Choose SVG file</span>
 			<input
 				type="file"
 				accept=".svg"
 				onchange={(e) => handleFileUpload(e)}
-				class="block w-full text-sm text-slate-500
+				class="mx-auto block text-sm text-slate-500
           file:mr-4 file:rounded-md file:border-0
           file:bg-orange-50 file:px-4
           file:py-2 file:text-sm
@@ -269,7 +270,7 @@
 		<div bind:this={svgDisplay}></div>
 	</div>
 
-	<div class="mt-4 flex items-center gap-3">
+	<div class="mt-10 flex items-center gap-3">
 		<button
 			class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium transition-colors hover:cursor-pointer
 				       {bgColorHex === '#ffffff'
@@ -291,9 +292,9 @@
 		<ColorPicker bind:hex={bgColorHex} position="responsive" />
 	</div>
 
-	<div class="mt-4 w-full max-w-[400px]">
+	<div class="mt-10 w-full max-w-[400px]">
 		<div class="flex items-center justify-between">
-			<span class="text-sm text-gray-600">Border Radius: {borderRadius}px</span>
+			<span class="p-2 text-sm text-gray-600">Border Radius: {borderRadius}px</span>
 			<input
 				type="range"
 				min="0"
@@ -306,13 +307,13 @@
 
 	<div class="mt-4 w-full max-w-[400px]">
 		<div class="flex items-center justify-between">
-			<span class="text-sm text-gray-600">Image Width: {imageWidth}%</span>
+			<span class="p-2 text-sm text-gray-600">Image Width: {imageWidth}%</span>
 			<input
 				type="range"
 				min="10"
 				max="100"
 				bind:value={imageWidth}
-				class="w-full accent-orange-500"
+				class="mx-auto w-85 accent-orange-500"
 			/>
 		</div>
 	</div>
@@ -322,15 +323,15 @@
 			class="flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
 			onclick={copySvgWithBackground}
 		>
-			<Copy class="mr-2 h-4 w-4" />
-			Copy SVG
+			<Copy class="h-5 w-5" />
+			<span class="ml-2 max-sm:hidden block">Copy SVG</span>
 		</button>
 		<button
 			class="flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
 			onclick={downloadSvgWithBackground}
 		>
-			<Download class="mr-2 h-4 w-4" />
-			Download SVG
+			<Download class="h-5 w-5" />
+			<span class="ml-2 max-sm:hidden block">Download SVG</span>
 		</button>
 	</div>
 </main>
