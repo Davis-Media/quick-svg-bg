@@ -375,7 +375,7 @@
 			/>
 		</label>
 		<p class="text-md text-center text-gray-800">
-			Add multiple SVGs to create a preset modification to all SVGs at once
+			Add multiple SVGs to edit one by one or apply edits to all SVGs at once
 		</p>
 	</div>
 
