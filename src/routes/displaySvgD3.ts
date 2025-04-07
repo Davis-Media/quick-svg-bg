@@ -45,7 +45,7 @@ export const displaySvgD3 = () => {
 		path.attr('d', svgPath).attr('fill', bgColorHex);
 	};
 
-	const setInnerSvg = (data: { svgElement: SVGElement; imageWidth: number }) => {
+	const setInnerSvg = (data: { svgElement: SVGElement; imageWidth: number, imageRotation: number }) => {
 		const { svgElement, imageWidth } = data;
 
 		// Clear any existing SVG content
@@ -92,6 +92,10 @@ export const displaySvgD3 = () => {
 		const xOffset = (size - scaledWidth) / 2;
 		const yOffset = (size - scaledHeight) / 2;
 
+		// Center of the content after scaling
+		const centerX = (scaledWidth / 2);
+		const centerY = (scaledHeight / 2);
+
 		// Create a new group element for the inner SVG
 		innerSvg = svg.append('g');
 
@@ -111,7 +115,7 @@ export const displaySvgD3 = () => {
 			.append('g')
 			.attr(
 				'transform',
-				`translate(${xOffset - viewBoxMinX * scaleX}, ${yOffset - viewBoxMinY * scaleY}) scale(${scaleX}, ${scaleY})`
+				`translate(${xOffset - viewBoxMinX * scaleX}, ${yOffset - viewBoxMinY * scaleY}) rotate(${data.imageRotation}, ${centerX}, ${centerY}) scale(${scaleX}, ${scaleY})`
 			);
 
 		// Append each child node to our new group

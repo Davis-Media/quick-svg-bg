@@ -46,6 +46,7 @@
 	"dependencies": {
 		"@lucide/svelte": "^0.479.0",
 		"d3": "^7.9.0",
-		"figma-squircle": "^1.1.0"
+		"figma-squircle": "^1.1.0",
+		"jszip": "^3.10.1"
 	}
 }

@@ -1,13 +1,17 @@
 <script lang="ts">
 	import ColorPicker from 'svelte-awesome-color-picker';
-	import { Copy, Download } from '@lucide/svelte';
+	import { Archive, Copy, Download } from '@lucide/svelte';
 	import { getSvgPath } from 'figma-squircle';
 	import { displaySvgD3 } from './displaySvgD3';
+	import JSZip from 'jszip';
 
 	let bgColorHex = $state<string>('#000000');
 	let borderRadius = $state<number>(100);
 	let imageWidth = $state<number>(75);
 	let svgElement = $state<SVGElement | null>(null);
+	let svgElements = $state<SVGElement[]>([]);
+	let imageRotation = $state<number>(0);
+	let selectedIndex = $state<string>('');
 
 	const parseSvgContent = (svgContent: string) => {
 		const parser = new DOMParser();
@@ -92,21 +96,30 @@
 		}
 	) => {
 		const target = event.target as HTMLInputElement;
-		const file = target.files![0];
-		if (file && file.type === 'image/svg+xml') {
-			file.text().then((text) => {
-				const parser = new DOMParser();
-				const doc = parser.parseFromString(text, 'image/svg+xml');
-				svgElement = doc.documentElement as unknown as SVGElement;
-			});
-		} else {
-			alert('Please upload an SVG file');
-			target.value = '';
-		}
+		const files = target.files;
+		console.log('Files:', files);
+		if (!files || files.length === 0) return;
+		Array.from(files).forEach((file) => {
+			if (file && file.type === 'image/svg+xml') {
+				file.text().then((text) => {
+					const parser = new DOMParser();
+					const doc = parser.parseFromString(text, 'image/svg+xml');
+					svgElements.push(doc.documentElement as unknown as SVGElement);
+					if (svgElements.length === 1) {
+						svgElement = svgElements[0];
+						selectedIndex = '0';
+						console.log(':',selectedIndex);
+					}
+				});
+			} else {
+				alert('Please upload an SVG file: ' + file.name);
+				target.value = '';
+			}
+		});
 	};
 
-	const createSvgWithBackground = () => {
-		if (!svgElement) return null;
+	const createSvgWithBackground = (svgImage: SVGElement) => {
+		if (!svgImage) return null;
 
 		const size = 400;
 
@@ -128,7 +141,7 @@
 		path.setAttribute('fill', bgColorHex);
 		newSvg.appendChild(path);
 
-		const originalViewBox = svgElement.getAttribute('viewBox')?.split(' ').map(Number) || [
+		const originalViewBox = svgImage.getAttribute('viewBox')?.split(' ').map(Number) || [
 			0, 0, 100, 100
 		];
 		const originalWidth = originalViewBox[2];
@@ -156,14 +169,18 @@
 		const scaledWidth = originalWidth * scaleX;
 		const scaledHeight = originalHeight * scaleY;
 
+		// Center of the content after scaling
+		const centerX = (scaledWidth / 2);
+		const centerY = (scaledHeight / 2);
+
 		// Center the SVG in the background
 		const xOffset = (size - scaledWidth) / 2;
 		const yOffset = (size - scaledHeight) / 2;
 
 		// Add the original SVG content in a group with transform
 		const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-		g.setAttribute('transform', `translate(${xOffset}, ${yOffset}) scale(${scaleX}, ${scaleY})`);
-		g.innerHTML = svgElement.innerHTML;
+		g.setAttribute('transform', `translate(${xOffset}, ${yOffset}) rotate(${imageRotation}, ${centerX}, ${centerY}) scale(${scaleX}, ${scaleY})`);
+		g.innerHTML = svgImage.innerHTML;
 		newSvg.appendChild(g);
 
 		const serializer = new XMLSerializer();
@@ -171,7 +188,11 @@
 	};
 
 	const copySvgWithBackground = async () => {
-		const svgString = await createSvgWithBackground();
+		if (!svgElement) {
+			alert('No SVG selected');
+			return;
+		}
+		const svgString = await createSvgWithBackground(svgElement);
 		if (!svgString) {
 			alert('Failed to copy SVG');
 			return;
@@ -186,8 +207,34 @@
 		}
 	};
 
+	function handleSelect(event: Event) {
+		const target = event.target as HTMLSelectElement;
+		const index = target.value;
+		svgElement = index === '' ? null : svgElements[parseInt(index, 10)];
+		selectedIndex = index;
+		console.log(selectedIndex);
+	}
+
+	function clampAngle() {
+		//handles typing multiple characters in the input fields
+		if (typeof imageRotation !== 'number' || isNaN(imageRotation)) {
+			imageRotation = 0;
+		}
+
+		if (imageRotation > 360) {
+			imageRotation = 360;
+		} else if (imageRotation < 0) {
+			imageRotation = 0;
+		}
+		console.log(imageRotation);
+	}
+
 	const downloadSvgWithBackground = async () => {
-		const svgString = await createSvgWithBackground();
+		if (!svgElement) {
+			alert('No SVG selected');
+			return;
+		}
+		const svgString = await createSvgWithBackground(svgElement);
 		if (!svgString) {
 			alert('Failed to download SVG');
 			return;
@@ -214,6 +261,53 @@
 		}
 	};
 
+	const downloadAllSVGsAsZip = async () => {
+		if (svgElements.length === 0) {
+			alert('No SVGs uploaded');
+			return;
+		}
+		const zip = new JSZip();
+		svgElements.forEach((svg, index) => {
+			const svgString = createSvgWithBackground(svg);
+			if (!svgString) {
+				alert('Failed to download SVGs');
+				return;
+			}
+			zip.file(`svg-with-background-${index + 1}.svg`, svgString);
+		});
+
+		try {
+			const content = await zip.generateAsync({ type: 'blob' });
+			const url = URL.createObjectURL(content);
+
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = 'svgs-with-background.zip';
+			document.body.appendChild(a);
+			a.click();
+
+			// Clean up
+			setTimeout(() => {
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+			}, 100);
+		} catch (error) {
+			console.error('Error downloading SVGs:', error);
+			alert('Failed to download SVGs');
+		}
+	};
+
+	const applyChangesToAllSVG = async () => {
+		if (svgElements.length === 0) return;
+		svgElements.forEach((svg, index) => {
+			const svgString = createSvgWithBackground(svg);
+			if (!svgString) {
+				alert('Failed to apply changes to SVGs');
+				return;
+			}
+		});
+		alert('Style applied to all SVGs');
+	};
 	let svgDisplay: HTMLDivElement;
 
 	const { setupSvg, updateSvg, setInnerSvg } = displaySvgD3();
@@ -228,7 +322,7 @@
 
 	$effect(() => {
 		if (svgElement) {
-			setInnerSvg({ svgElement: svgElement, imageWidth: imageWidth });
+			setInnerSvg({ svgElement: svgElement, imageWidth: imageWidth, imageRotation: imageRotation });
 		}
 	});
 </script>
@@ -242,13 +336,12 @@
 <main class="flex grow flex-col items-center justify-center p-8">
 	<h1 class="pb-4 text-center text-2xl font-bold">Quick SVG Background</h1>
 
-	<p class="pb-8 text-center text-sm text-gray-600">
+	<p class="text-md text-center text-gray-800">
 		Quickly add a background to your svg. All client side, for free.
 	</p>
 
-	<div class="mb-8">
+	<!-- <div class="mb-5">
 		<label class="mb-5 ml-20 flex flex-col items-center justify-center">
-			<span class="sr-only">Choose SVG file</span>
 			<input
 				type="file"
 				accept=".svg"
@@ -263,6 +356,26 @@
 		</label>
 		<p class="mt-2 text-sm text-gray-600">
 			Or press Cmd+V / Ctrl+V anywhere on the page to paste an SVG
+		</p>
+	</div> -->
+
+	<div class="mb-10 flex w-full flex-col items-center justify-center">
+		<label class="my-10 ml-20 flex cursor-pointer flex-col items-center justify-center">
+			<input
+				multiple
+				type="file"
+				accept=".svg"
+				onchange={(e) => handleFileUpload(e)}
+				class="mx-auto block text-sm
+			text-slate-500 file:mr-4 file:rounded-md
+			file:border-0 file:bg-orange-50
+			file:px-4 file:py-2
+			file:text-sm file:font-semibold
+			file:text-orange-700 hover:file:bg-orange-100"
+			/>
+		</label>
+		<p class="text-md text-center text-gray-800">
+			Add multiple SVGs to create a preset modification to all SVGs at once
 		</p>
 	</div>
 
@@ -292,6 +405,27 @@
 		<ColorPicker bind:hex={bgColorHex} position="responsive" />
 	</div>
 
+	<div class="mt-10 flex w-[400px] gap-x-5 flex-row items-center justify-center">
+			<select
+				id="svgDropdown"
+				class="text-md w-3/5 rounded border px-3 py-3"
+				onchange={handleSelect}
+				bind:value={selectedIndex}
+			>
+				<option value='' disabled>No SVG selected</option>
+
+				{#each svgElements as _, index}
+					<option value={index.toString()}>SVG {index + 1}</option>
+				{/each}
+			</select>
+			<button
+				class="text-md flex w-2/5 py-3 flex-row items-center justify-center rounded-md bg-orange-600 font-bold text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+				onclick={applyChangesToAllSVG}
+			>
+				<span class="block text-right max-sm:hidden">Apply to all</span>
+			</button>
+	</div>
+
 	<div class="mt-10 w-full max-w-[400px]">
 		<div class="flex items-center justify-between">
 			<span class="p-2 text-sm text-gray-600">Border Radius: {borderRadius}px</span>
@@ -318,20 +452,42 @@
 		</div>
 	</div>
 
-	<div class="mt-10 flex gap-4">
+	<div class="mt-4 flex w-full max-w-[400px] flex-row items-center justify-between">
+		<div class="flex flex-col items-start">
+			<span class="px-2 text-sm text-gray-600">Rotation (°): </span>
+			<span class="px-2 text-sm text-gray-600">{imageRotation}° </span>
+		</div>
+		<input
+			type="number"
+			min="0"
+			max="360"
+			bind:value={imageRotation}
+			oninput={clampAngle}
+			class="w-73 rounded-md border-2 border-orange-600 py-2 text-right text-sm font-medium  transition-colors hover:cursor-pointer"
+		/>
+	</div>
+
+	<div class="mt-10 flex w-full flex-row items-center justify-center gap-4">
 		<button
-			class="flex text-xl font-bold items-center rounded-md bg-orange-600 px-4 py-3 text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+			class="flex items-center rounded-md bg-orange-600 px-4 py-3 text-lg font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
 			onclick={copySvgWithBackground}
 		>
-			<Copy class="h-7 w-7" strokeWidth={3}/>
-			<span class="ml-2 max-sm:hidden block">Copy SVG</span>
+			<Copy class="h-5 w-5" strokeWidth={3} />
+			<span class="ml-2 block max-sm:hidden">Copy SVG</span>
 		</button>
 		<button
-			class="flex text-xl font-bold items-center rounded-md bg-orange-600 px-4 py-3 text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+			class="flex items-center rounded-md bg-orange-600 px-4 py-3 text-lg font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
 			onclick={downloadSvgWithBackground}
 		>
-			<Download class="h-7 w-7" strokeWidth={3} />
-			<span class="ml-2 max-sm:hidden block">Download SVG</span>
+			<Download class="h-5 w-5" strokeWidth={3} />
+			<span class="ml-2 block max-sm:hidden">Download this SVG</span>
+		</button>
+		<button
+			class="flex items-center rounded-md bg-orange-600 px-4 py-3 text-lg font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+			onclick={downloadAllSVGsAsZip}
+		>
+			<Archive class="h-5 w-5" strokeWidth={3} />
+			<span class="ml-2 block max-sm:hidden">Download all SVGs</span>
 		</button>
 	</div>
 </main>
