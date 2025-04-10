@@ -12,6 +12,10 @@ node_modules
 .DS_Store
 Thumbs.db
 
+# Cloudflare
+.wrangler
+.dev.vars*
+
 # Env
 .env
 .env.*
