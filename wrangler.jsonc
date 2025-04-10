@@ -5,5 +5,11 @@
 		"binding": "ASSETS",
 		"directory": ".svelte-kit/cloudflare"
 	},
+	"routes": [
+		{
+			"pattern": "quickbg.davis7.sh",
+			"custom_domain": true
+		}
+	],
 	"compatibility_date": "2025-04-03"
 }

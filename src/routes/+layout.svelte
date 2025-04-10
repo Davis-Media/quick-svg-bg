@@ -3,7 +3,7 @@
 	import '../app.css';
 	let { children } = $props();
 
-	let isDark = $state(false);
+	let isDark = $state(true);
 
 	function toggleDarkMode() {
 		isDark = !isDark;
@@ -13,12 +13,6 @@
 			document.documentElement.classList.remove('dark');
 		}
 	}
-
-	let isEven = (num: number) => {
-		return num % 2 !== 0;
-	};
-
-	$inspect(isEven(1));
 </script>
 
 <div
