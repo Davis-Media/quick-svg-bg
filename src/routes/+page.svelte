@@ -97,7 +97,6 @@
 	) => {
 		const target = event.target as HTMLInputElement;
 		const files = target.files;
-		console.log('Files:', files);
 		if (!files || files.length === 0) return;
 		const filePromises = Array.from(files).map((file) => {
   		if (file && file.type === 'image/svg+xml') {
@@ -231,7 +230,6 @@
 		const index = target.value;
 		svgElement = index === '' ? null : svgElements[parseInt(index, 10)];
 		selectedIndex = index;
-		console.log(selectedIndex);
 	}
 
 	function clampAngle() {
@@ -245,7 +243,6 @@
 		} else if (imageRotation < 0) {
 			imageRotation = 0;
 		}
-		console.log(imageRotation);
 	}
 
 	const downloadSvgWithBackground = async () => {
