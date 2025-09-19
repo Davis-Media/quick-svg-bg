@@ -284,7 +284,7 @@
 		}
 		const zip = new JSZip();
 		svgElements.forEach((svgObj, index) => {
-			const svgString = createSvgWithBackground(svgObj.element);
+			const svgString = createSvgWithBackground(svgObj.element, currentRotation);
 			if (!svgString) {
 				alert('Failed to download SVGs');
 				return;
