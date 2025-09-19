@@ -442,7 +442,7 @@
 				{/each}
 			</select>
 			<button
-				class="max-sm:w-fulltext-md flex w-2/5 py-3 flex-row items-center justify-center rounded-md bg-orange-600 font-bold text-white transition-colors hover:cursor-pointer hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-85"
+				class="max-sm:w-full text-md flex w-2/5 py-3 flex-row items-center justify-center rounded-md bg-orange-600 font-bold text-white transition-colors hover:cursor-pointer hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-85"
 				disabled={svgElements.length === 0 || !svgElements}
 				onclick={applyChangesToAllSVG}
 			>
