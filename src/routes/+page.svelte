@@ -487,7 +487,7 @@
 			max="360"
 			bind:value={imageRotation}
 			oninput={clampAngle}
-			class="w-75 rounded-md border-2 border-orange-600 py-2 text-right text-sm font-medium  transition-colors hover:cursor-pointer"
+			class="w-3/4 rounded-md border-2 border-orange-600 py-2 text-right text-sm font-medium  transition-colors hover:cursor-pointer"
 		/>
 	</div>
 
