@@ -11,7 +11,7 @@
 	let svgElement = $state<SVGElement | null>(null);
 	let svgElements = $state<SVGElement[]>([]);
 	let imageRotation = $state<number>(0);
-	let selectedIndex = $state<string>('');
+	let selectedIndex = $state<number>(0);
 
 	const parseSvgContent = (svgContent: string) => {
 		const parser = new DOMParser();
@@ -99,35 +99,35 @@
 		const files = target.files;
 		if (!files || files.length === 0) return;
 		const filePromises = Array.from(files).map((file) => {
-  		if (file && file.type === 'image/svg+xml') {
-		    return file.text()
-		      .then((text) => {
-		    	const parser = new DOMParser();
-		        const doc = parser.parseFromString(text, 'image/svg+xml');
-		        return doc.documentElement;
-		      })
-		      .catch((error) => {
-		        console.error("Error processing file:", file.name, error);
-		        alert('Error processing file: ' + file.name);
-		        return null;
-		      });
+		if (file && file.type === 'image/svg+xml') {
+			return file.text()
+			  .then((text) => {
+				const parser = new DOMParser();
+				const doc = parser.parseFromString(text, 'image/svg+xml');
+		        return doc.documentElement as unknown as SVGElement;
+			  })
+			  .catch((error) => {
+				console.error("Error processing file:", file.name, error);
+				alert('Error processing file: ' + file.name);
+				return null;
+			  });
 		  } else {
-		    alert('Please upload an SVG file: ' + file.name);
-		    target.value = '';
-		    return null;
+			alert('Please upload an SVG file: ' + file.name);
+			target.value = '';
+			return null;
 		  }
 		}).filter(Boolean);
 
 		Promise.all(filePromises)
 		  .then((elements) => {
-		    const validSvgElements = elements.filter(Boolean);
+		    const validSvgElements = elements.filter(Boolean) as SVGElement[];
 		    if (validSvgElements.length > 0) {
 				svgElements.push(...validSvgElements);
 			    svgElement = validSvgElements[0];
-			    selectedIndex = '0';
+			    selectedIndex = 0;
 		    } else {
 				svgElement = null;
-			    selectedIndex = null;
+			    selectedIndex = -1;
 		    }
 		  })
 		  .catch((error) => {
@@ -227,8 +227,8 @@
 
 	function handleSelect(event: Event) {
 		const target = event.target as HTMLSelectElement;
-		const index = target.value;
-		svgElement = index === '' ? null : svgElements[parseInt(index, 10)];
+		const index = parseInt(target.value, 10);
+		svgElement = index === -1 || !svgElements ? null : svgElements[index];
 		selectedIndex = index;
 	}
 
