@@ -9,9 +9,9 @@
 	let borderRadius = $state<number>(100);
 	let imageWidth = $state<number>(75);
 	let svgElement = $state<SVGElement | null>(null);
-	let svgElements = $state<SVGElement[]>([]);
+	let svgElements = $state<{ element: SVGElement; name: string }[]>([]);
 	let imageRotation = $state<number>(0);
-	let selectedIndex = $state<number>(0);
+	let selectedIndex = $state<string>('-1');
 
 	const parseSvgContent = (svgContent: string) => {
 		const parser = new DOMParser();
@@ -104,7 +104,7 @@
 			  .then((text) => {
 				const parser = new DOMParser();
 				const doc = parser.parseFromString(text, 'image/svg+xml');
-		        return doc.documentElement as unknown as SVGElement;
+				return { element: doc.documentElement as unknown as SVGElement, name: file.name };
 			  })
 			  .catch((error) => {
 				console.error("Error processing file:", file.name, error);
@@ -120,14 +120,14 @@
 
 		Promise.all(filePromises)
 		  .then((elements) => {
-		    const validSvgElements = elements.filter(Boolean) as SVGElement[];
+				const validSvgElements = elements.filter(Boolean) as { element: SVGElement; name: string }[];
 		    if (validSvgElements.length > 0) {
 				svgElements.push(...validSvgElements);
-			    svgElement = validSvgElements[0];
-			    selectedIndex = 0;
+			    svgElement = validSvgElements[0].element;
+			    selectedIndex = '0';
 		    } else {
 				svgElement = null;
-			    selectedIndex = -1;
+			    selectedIndex = '-1';
 		    }
 		  })
 		  .catch((error) => {
@@ -228,8 +228,8 @@
 	function handleSelect(event: Event) {
 		const target = event.target as HTMLSelectElement;
 		const index = parseInt(target.value, 10);
-		svgElement = index === -1 || !svgElements ? null : svgElements[index];
-		selectedIndex = index;
+		svgElement = index === -1 || !svgElements ? null : svgElements[index]?.element;
+		selectedIndex = index.toString();
 	}
 
 	function clampAngle() {
@@ -283,13 +283,14 @@
 			return;
 		}
 		const zip = new JSZip();
-		svgElements.forEach((svg, index) => {
-			const svgString = createSvgWithBackground(svg);
+		svgElements.forEach((svgObj, index) => {
+			const svgString = createSvgWithBackground(svgObj.element);
 			if (!svgString) {
 				alert('Failed to download SVGs');
 				return;
 			}
-			zip.file(`svg-with-background-${index + 1}.svg`, svgString);
+			const filename = svgObj.name.replace(/\.svg$/i, '.bg.svg');
+			zip.file(filename, svgString);
 		});
 
 		try {
@@ -315,8 +316,8 @@
 
 	const applyChangesToAllSVG = async () => {
 		if (svgElements.length === 0) return;
-		svgElements.forEach((svg, index) => {
-			const svgString = createSvgWithBackground(svg);
+		svgElements.forEach((svgObj) => {
+			const svgString = createSvgWithBackground(svgObj.element);
 			if (!svgString) {
 				alert('Failed to apply changes to SVGs');
 				return;
@@ -426,24 +427,26 @@
 		</div>
 	</div>
 
-	<div class="mt-10 flex w-[400px] gap-x-5 flex-row items-center justify-center">
+	<div class="mt-10 flex w-[400px] gap-x-5 flex-row max-sm:flex-col max-sm:gap-y-4 max-sm:px-5 items-center justify-center">
 			<select
 				id="svgDropdown"
-				class="text-md w-3/5 rounded border px-3 py-3"
+				class="max-sm:w-full text-md w-3/5 px-3 rounded border-1 py-3 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
 				onchange={handleSelect}
+				disabled={svgElements.length === 0 || !svgElements}
 				bind:value={selectedIndex}
 			>
-				<option value='' disabled>No SVG selected</option>
-
-				{#each svgElements as _, index}
-					<option value={index.toString()}>SVG {index + 1}</option>
+				<option value="-1" disabled>{svgElements.length === 0 ? "No SVGs uploaded..." :
+				"Select an SVG..."}</option>
+				{#each svgElements as svgObj, index}
+					<option value={index.toString()}>{svgObj.name || `SVG ${index + 1}`}</option>
 				{/each}
 			</select>
 			<button
-				class="text-md flex w-2/5 py-3 flex-row items-center justify-center rounded-md bg-orange-600 font-bold text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+				class="max-sm:w-fulltext-md flex w-2/5 py-3 flex-row items-center justify-center rounded-md bg-orange-600 font-bold text-white transition-colors hover:cursor-pointer hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-85"
+				disabled={svgElements.length === 0 || !svgElements}
 				onclick={applyChangesToAllSVG}
 			>
-				<span class="block text-right max-sm:hidden">Apply to all</span>
+				<span class="block text-right">Apply to all</span>
 			</button>
 	</div>
 
@@ -475,8 +478,8 @@
 
 	<div class="mt-4 flex w-full max-w-[400px] flex-row items-center justify-between">
 		<div class="flex flex-col items-start">
-			<span class="px-2 text-sm text-gray-600">Rotation (°): </span>
-			<span class="px-2 text-sm text-gray-600">{imageRotation}° </span>
+			<span class="text-sm text-gray-600">Rotation (°): </span>
+			<span class="text-sm text-gray-600">{imageRotation}° </span>
 		</div>
 		<input
 			type="number"
@@ -484,7 +487,7 @@
 			max="360"
 			bind:value={imageRotation}
 			oninput={clampAngle}
-			class="w-73 rounded-md border-2 border-orange-600 py-2 text-right text-sm font-medium  transition-colors hover:cursor-pointer"
+			class="w-75 rounded-md border-2 border-orange-600 py-2 text-right text-sm font-medium  transition-colors hover:cursor-pointer"
 		/>
 	</div>
 
@@ -504,7 +507,7 @@
 			<span class="ml-2 block max-sm:hidden">Download this SVG</span>
 		</button>
 		<button
-			class="flex items-center rounded-md bg-orange-600 px-4 py-3 text-lg font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+			class="flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
 			onclick={downloadAllSVGsAsZip}
 		>
 			<Archive class="h-5 w-5" strokeWidth={3} />
