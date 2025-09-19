@@ -334,9 +334,8 @@
 </svelte:head>
 
 <main class="flex grow flex-col items-center justify-center p-8">
-	<h1 class="pb-4 text-center text-2xl font-bold">Quick SVG Background</h1>
-
-	<p class="text-md text-center text-gray-800">
+	<h1 class="pb-4 text-2xl font-bold dark:text-white">Quick SVG Background</h1>
+	<p class="pb-8 text-center text-sm text-gray-600 dark:text-gray-300">
 		Quickly add a background to your svg. All client side, for free.
 	</p>
 
@@ -346,15 +345,17 @@
 				type="file"
 				accept=".svg"
 				onchange={(e) => handleFileUpload(e)}
-				class="mx-auto block text-sm text-slate-500
-          file:mr-4 file:rounded-md file:border-0
-          file:bg-orange-50 file:px-4
-          file:py-2 file:text-sm
-          file:font-semibold file:text-orange-700
-          hover:file:bg-orange-100"
+				class="block w-full text-sm text-slate-500 file:mr-4
+          file:rounded-md file:border-0 file:bg-orange-50
+          file:px-4 file:py-2
+          file:text-sm file:font-semibold
+          file:text-orange-700 hover:file:bg-orange-100
+          dark:text-slate-300
+          dark:file:bg-orange-900/50 dark:file:text-orange-300
+          dark:hover:file:bg-orange-900/70"
 			/>
 		</label>
-		<p class="mt-2 text-sm text-gray-600">
+		<p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
 			Or press Cmd+V / Ctrl+V anywhere on the page to paste an SVG
 		</p>
 	</div> -->
@@ -386,23 +387,27 @@
 	<div class="mt-10 flex items-center gap-3">
 		<button
 			class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium transition-colors hover:cursor-pointer
+				       dark:border-gray-600
 				       {bgColorHex === '#ffffff'
 				? 'bg-orange-500 text-white'
-				: 'bg-white text-gray-800 hover:bg-gray-100'}"
+				: 'bg-white text-gray-800 hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700'}"
 			onclick={() => (bgColorHex = '#ffffff')}
 		>
 			White
 		</button>
 		<button
 			class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium transition-colors hover:cursor-pointer
+				       dark:border-gray-600
 				       {bgColorHex === '#000000'
 				? 'bg-orange-500 text-white'
-				: 'bg-black text-white hover:bg-gray-800'}"
+				: 'bg-black text-white hover:bg-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800'}"
 			onclick={() => (bgColorHex = '#000000')}
 		>
 			Black
 		</button>
-		<ColorPicker bind:hex={bgColorHex} position="responsive" />
+		<div class="rounded-md border border-gray-300 bg-white px-2 py-1 dark:border-gray-600">
+			<ColorPicker bind:hex={bgColorHex} position="responsive" />
+		</div>
 	</div>
 
 	<div class="mt-10 flex w-[400px] gap-x-5 flex-row items-center justify-center">
@@ -428,7 +433,7 @@
 
 	<div class="mt-10 w-full max-w-[400px]">
 		<div class="flex items-center justify-between">
-			<span class="p-2 text-sm text-gray-600">Border Radius: {borderRadius}px</span>
+			<span class="text-sm text-gray-600 dark:text-gray-300">Border Radius: {borderRadius}px</span>
 			<input
 				type="range"
 				min="0"
@@ -441,7 +446,7 @@
 
 	<div class="mt-4 w-full max-w-[400px]">
 		<div class="flex items-center justify-between">
-			<span class="p-2 text-sm text-gray-600">Image Width: {imageWidth}%</span>
+			<span class="text-sm text-gray-600 dark:text-gray-300">Image Width: {imageWidth}%</span>
 			<input
 				type="range"
 				min="10"
@@ -469,14 +474,14 @@
 
 	<div class="mt-10 flex w-full flex-row items-center justify-center gap-4">
 		<button
-			class="flex items-center rounded-md bg-orange-600 px-4 py-3 text-lg font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+			class="flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
 			onclick={copySvgWithBackground}
 		>
 			<Copy class="h-5 w-5" strokeWidth={3} />
 			<span class="ml-2 block max-sm:hidden">Copy SVG</span>
 		</button>
 		<button
-			class="flex items-center rounded-md bg-orange-600 px-4 py-3 text-lg font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700"
+			class="flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
 			onclick={downloadSvgWithBackground}
 		>
 			<Download class="h-5 w-5" strokeWidth={3} />
