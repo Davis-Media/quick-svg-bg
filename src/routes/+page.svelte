@@ -99,23 +99,42 @@
 		const files = target.files;
 		console.log('Files:', files);
 		if (!files || files.length === 0) return;
-		Array.from(files).forEach((file) => {
-			if (file && file.type === 'image/svg+xml') {
-				file.text().then((text) => {
-					const parser = new DOMParser();
-					const doc = parser.parseFromString(text, 'image/svg+xml');
-					svgElements.push(doc.documentElement as unknown as SVGElement);
-					if (svgElements.length === 1) {
-						svgElement = svgElements[0];
-						selectedIndex = '0';
-						console.log(':',selectedIndex);
-					}
-				});
-			} else {
-				alert('Please upload an SVG file: ' + file.name);
-				target.value = '';
-			}
-		});
+		const filePromises = Array.from(files).map((file) => {
+  		if (file && file.type === 'image/svg+xml') {
+		    return file.text()
+		      .then((text) => {
+		    	const parser = new DOMParser();
+		        const doc = parser.parseFromString(text, 'image/svg+xml');
+		        return doc.documentElement;
+		      })
+		      .catch((error) => {
+		        console.error("Error processing file:", file.name, error);
+		        alert('Error processing file: ' + file.name);
+		        return null;
+		      });
+		  } else {
+		    alert('Please upload an SVG file: ' + file.name);
+		    target.value = '';
+		    return null;
+		  }
+		}).filter(Boolean);
+
+		Promise.all(filePromises)
+		  .then((elements) => {
+		    const validSvgElements = elements.filter(Boolean);
+		    if (validSvgElements.length > 0) {
+				svgElements.push(...validSvgElements);
+			    svgElement = validSvgElements[0];
+			    selectedIndex = '0';
+		    } else {
+				svgElement = null;
+			    selectedIndex = null;
+		    }
+		  })
+		  .catch((error) => {
+		    	console.error("Error in Promise.all:", error);
+		    	alert("An error occurred while processing the files.");
+		  });
 	};
 
 	const createSvgWithBackground = (svgImage: SVGElement) => {
