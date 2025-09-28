@@ -1,5 +1,6 @@
 {
-	"name": "quick-background",
+	"name": "quick-svg-bg",
+	"author": "Ben Davis",
 	"private": false,
 	"version": "1.0.0",
 	"type": "module",
