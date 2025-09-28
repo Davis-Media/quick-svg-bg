@@ -92,13 +92,18 @@
 		}
 	) => {
 		const target = event.target as HTMLInputElement;
-		const file = target.files![0];
+		const file = target.files?.[0];
 		if (file && file.type === 'image/svg+xml') {
-			file.text().then((text) => {
-				const parser = new DOMParser();
-				const doc = parser.parseFromString(text, 'image/svg+xml');
-				svgElement = doc.documentElement as unknown as SVGElement;
-			});
+			file
+				.text()
+				.then((text) => {
+					const parser = new DOMParser();
+					const doc = parser.parseFromString(text, 'image/svg+xml');
+					svgElement = doc.documentElement as unknown as SVGElement;
+				})
+				.finally(() => {
+					target.value = '';
+				});
 		} else {
 			alert('Please upload an SVG file');
 			target.value = '';
@@ -218,6 +223,29 @@
 
 	const { setupSvg, updateSvg, setInnerSvg } = displaySvgD3();
 
+	const swatchClasses = (isActive: boolean) =>
+		isActive
+			? [
+					'border-transparent',
+					'bg-[var(--color-primary)]',
+					'text-white shadow-sm',
+					'hover:bg-[var(--color-primary-strong)]'
+				].join(' ')
+			: [
+					'border-[color:var(--color-border)]',
+					'bg-[var(--color-surface)]',
+					'text-[color:var(--color-text-primary)]',
+					'hover:border-[var(--color-primary)]',
+					'hover:text-[color:var(--color-primary-strong)]'
+				].join(' ');
+
+	const primaryActionClasses = [
+		'inline-flex w-full items-center justify-center gap-2 rounded-full',
+		'bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white shadow-sm transition',
+		'hover:bg-[var(--color-primary-strong)]',
+		'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary-strong)]'
+	].join(' ');
+
 	$effect(() => {
 		setupSvg(svgDisplay);
 	});
@@ -234,80 +262,99 @@
 </script>
 
 <svelte:head>
-	<title>Quick SVG Background</title>
-	<meta name="description" content="Quickly add a background to your SVGs" />
+	<title>quick svg bg</title>
+	<meta name="description" content="quickly add a background to your svg" />
 </svelte:head>
 
-<main class="flex grow flex-col items-center justify-center p-4 sm:p-8">
-	<h1 class="pb-4 text-2xl font-bold dark:text-white">Quick SVG Background</h1>
+<main class="flex w-full flex-col gap-12">
 
-	<p class="pb-8 text-center text-sm text-gray-600 dark:text-gray-300">
-		Quickly add a background to your svg. All client side, for free.
-	</p>
-
-	<div class="flex w-full max-w-6xl flex-col gap-8 md:flex-row">
-		<!-- Left Column: SVG Preview and Upload -->
-		<div class="flex flex-col items-center justify-center gap-8 md:w-1/2">
-			<div class="flex items-center justify-center">
-				<div bind:this={svgDisplay}></div>
-			</div>
-
-			<div class="w-full max-w-sm">
-				<label class="block">
-					<span class="sr-only">Choose SVG file</span>
-					<input
-						type="file"
-						accept=".svg"
-						onchange={(e) => handleFileUpload(e)}
-						class="block w-full text-sm text-slate-500 file:mr-4
-				          file:rounded-md file:border-0 file:bg-orange-50
-				          file:px-4 file:py-2
-				          file:text-sm file:font-semibold
-				          file:text-orange-700 hover:file:bg-orange-100
-				          dark:text-slate-300
-				          dark:file:bg-orange-900/50 dark:file:text-orange-300
-				          dark:hover:file:bg-orange-900/70"
-					/>
-				</label>
-				<p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">
-					Or press Cmd+V / Ctrl+V anywhere on the page to paste an SVG
+	<section class="grid grid-cols-1 gap-8 lg:grid-cols-2 xl:gap-12">
+		<div class="flex flex-col gap-6">
+			<div
+				class="rounded-3xl border border-[color:var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)]"
+			>
+				<h2 class="text-lg font-semibold text-[color:var(--color-text-primary)]">Live preview</h2>
+				<p class="text-sm text-[color:var(--color-text-secondary)]">
+					See your SVG on a soft squircle background.
 				</p>
-			</div>
-		</div>
-
-		<!-- Right Column: Controls -->
-		<div class="flex w-full flex-col items-center justify-center gap-6 md:w-1/2">
-			<div class="flex items-center justify-center gap-3">
-				<button
-					class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium transition-colors hover:cursor-pointer
-							       dark:border-gray-600
-							       {bgColorHex === '#ffffff'
-						? 'bg-orange-500 text-white'
-						: 'bg-white text-gray-800 hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700'}"
-					onclick={() => (bgColorHex = '#ffffff')}
-				>
-					White
-				</button>
-				<button
-					class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium transition-colors hover:cursor-pointer
-							       dark:border-gray-600
-							       {bgColorHex === '#000000'
-						? 'bg-orange-500 text-white'
-						: 'bg-black text-white hover:bg-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800'}"
-					onclick={() => (bgColorHex = '#000000')}
-				>
-					Black
-				</button>
-				<div class="rounded-md border border-gray-300  px-2 py-1 dark:border-gray-600 dark-picker">
-					<ColorPicker bind:hex={bgColorHex} position="responsive" />
+				<div class="mt-6 flex items-center justify-center">
+					<div
+						class="relative flex aspect-square w-full max-w-sm items-center justify-center overflow-hidden rounded-2xl border border-[color:var(--color-border)] bg-[var(--color-surface-muted)] shadow-inner sm:max-w-none"
+					>
+						<div bind:this={svgDisplay} ></div>
+					</div>
 				</div>
 			</div>
 
-			<div class="w-full max-w-sm">
-				<div class="flex items-center justify-between">
-					<span class="text-sm text-gray-600 dark:text-gray-300"
-						>Border Radius: {borderRadius}px</span
+			<div
+				class="rounded-3xl border border-dashed border-[color:var(--color-border)] bg-[var(--color-surface)] p-6 text-center shadow-sm"
+			>
+				<h3 class="text-base font-medium text-[color:var(--color-text-primary)]">
+					Upload or paste an SVG
+				</h3>
+				<p class="mt-2 text-sm text-[color:var(--color-text-secondary)]">
+					Choose a file or press ⌘V / Ctrl+V anywhere to paste.
+				</p>
+				<label
+					class="mt-5 inline-flex cursor-pointer items-center justify-center rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white shadow-sm transition  focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--color-primary-strong)] hover:bg-[var(--color-primary-strong)]"
+				>
+					<span>Select SVG file</span>
+					<input type="file" accept=".svg" onchange={(e) => handleFileUpload(e)} class="sr-only" />
+				</label>
+			</div>
+		</div>
+
+		<div
+			class="rounded-3xl border border-[color:var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)]"
+		>
+			<h2 class="text-lg font-semibold text-[color:var(--color-text-primary)]">
+				Customize the background
+			</h2>
+			<p class="text-sm text-[color:var(--color-text-secondary)]">
+				Tweak colors, border radius, and scale to match your brand.
+			</p>
+
+			<div class="mt-6 flex flex-col gap-6">
+				<div>
+					<span
+						class="text-xs font-semibold tracking-[0.2em] text-[color:var(--color-text-secondary)] uppercase"
+						>Color</span
 					>
+					<div class="mt-3 flex flex-wrap items-center gap-3">
+						<button
+							class={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] ${swatchClasses(bgColorHex === '#ffffff')}`}
+							onclick={() => (bgColorHex = '#ffffff')}
+							type="button"
+						>
+							<span class="inline-block h-3 w-3 rounded-full border border-white bg-white"></span>
+							White
+						</button>
+						<button
+							class={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] ${swatchClasses(bgColorHex === '#000000')}`}
+							onclick={() => (bgColorHex = '#000000')}
+							type="button"
+						>
+							<span class="inline-block h-3 w-3 rounded-full border border-neutral-700 bg-black"
+							></span>
+							Black
+						</button>
+						<div
+							class="dark-picker inline-flex w-full max-w-[220px] items-center justify-center rounded-2xl border border-[color:var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2"
+						>
+							<ColorPicker bind:hex={bgColorHex} position="responsive" />
+						</div>
+					</div>
+				</div>
+
+				<div class="space-y-3">
+					<div
+						class="flex items-center justify-between text-sm font-medium text-[color:var(--color-text-secondary)]"
+					>
+						<span>Border radius</span>
+						<span class="text-xs font-semibold text-[color:var(--color-text-primary)]"
+							>{borderRadius}px</span
+						>
+					</div>
 					<input
 						type="range"
 						min="0"
@@ -316,11 +363,16 @@
 						class="w-full accent-orange-500"
 					/>
 				</div>
-			</div>
 
-			<div class="w-full max-w-sm">
-				<div class="flex items-center justify-between">
-					<span class="text-sm text-gray-600 dark:text-gray-300">Image Width: {imageWidth}%</span>
+				<div class="space-y-3">
+					<div
+						class="flex items-center justify-between text-sm font-medium text-[color:var(--color-text-secondary)]"
+					>
+						<span>Image width</span>
+						<span class="text-xs font-semibold text-[color:var(--color-text-primary)]"
+							>{imageWidth}%</span
+						>
+					</div>
 					<input
 						type="range"
 						min="10"
@@ -329,34 +381,36 @@
 						class="w-full accent-orange-500"
 					/>
 				</div>
-			</div>
 
-			<div class="flex w-full max-w-sm gap-4">
-				<button
-					class="flex flex-1 items-center justify-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
-					onclick={copySvgWithBackground}
-				>
-					<Copy class="mr-2 h-4 w-4" />
-					Copy SVG
-				</button>
-				<button
-					class="flex flex-1 items-center justify-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
-					onclick={downloadSvgWithBackground}
-				>
-					<Download class="mr-2 h-4 w-4" />
-					Download SVG
-				</button>
+				<div class="grid gap-3 sm:grid-cols-2">
+					<button class={primaryActionClasses} onclick={copySvgWithBackground} type="button">
+						<Copy class="h-4 w-4" />
+						Copy SVG
+					</button>
+					<button class={primaryActionClasses} onclick={downloadSvgWithBackground} type="button">
+						<Download class="h-4 w-4" />
+						Download SVG
+					</button>
+				</div>
 			</div>
 		</div>
-	</div>
+	</section>
 </main>
 
 <style>
 	.dark-picker {
-		--cp-bg-color: #333;
-		--cp-border-color: white;
-		--cp-text-color: white;
-		--cp-input-color: #555;
-		--cp-button-hover-color: #777;
+		--cp-bg-color: var(--color-surface);
+		--cp-border-color: var(--color-border);
+		--cp-text-color: var(--color-text-primary);
+		--cp-input-color: var(--color-surface-muted);
+		--cp-button-hover-color: var(--color-primary-soft);
+	}
+
+	.dark .dark-picker {
+		--cp-bg-color: var(--color-surface);
+		--cp-border-color: var(--color-border);
+		--cp-text-color: var(--color-text-primary);
+		--cp-input-color: var(--color-surface-muted);
+		--cp-button-hover-color: rgba(251, 146, 60, 0.25);
 	}
 </style>
