@@ -10,6 +10,7 @@
 	let borderRadius = $state<number>(70);
 	let imageWidth = $state<number>(80);
 	let svgElement = $state<SVGElement | null>(null);
+	let imageRotation = $state<number>(0);
 
 	type Toast = { id: number; message: string; type: 'success' | 'error' };
 	let toasts = $state<Toast[]>([]);
@@ -147,11 +148,11 @@
 		path.setAttribute('fill', bgColorHex);
 		newSvg.appendChild(path);
 
-		const originalViewBox = svgElement.getAttribute('viewBox')?.split(' ').map(Number) || [
-			0, 0, 100, 100
-		];
+		const originalViewBox = svgElement.getAttribute('viewBox')?.split(' ').map(Number) || [0, 0, 100, 100];
 		const originalWidth = originalViewBox[2];
 		const originalHeight = originalViewBox[3];
+		const viewBoxMinX = originalViewBox[0];
+		const viewBoxMinY = originalViewBox[1];
 
 		// Calculate scale factor based on image width percentage
 		const scaleFactor = imageWidth / 100;
@@ -175,13 +176,17 @@
 		const scaledWidth = originalWidth * scaleX;
 		const scaledHeight = originalHeight * scaleY;
 
+		// Center of the scaled SVG
+		const centerX = originalWidth / 2;
+		const centerY = originalHeight / 2;
+
 		// Center the SVG in the background
 		const xOffset = (size - scaledWidth) / 2;
 		const yOffset = (size - scaledHeight) / 2;
 
 		// Add the original SVG content in a group with transform
 		const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-		g.setAttribute('transform', `translate(${xOffset}, ${yOffset}) scale(${scaleX}, ${scaleY})`);
+		g.setAttribute('transform', `translate(${xOffset - viewBoxMinX * scaleX}, ${yOffset - viewBoxMinY * scaleY}) scale(${scaleX}, ${scaleY}) rotate(${imageRotation}, ${centerX}, ${centerY})`);
 		g.innerHTML = svgElement.innerHTML;
 		newSvg.appendChild(g);
 
@@ -235,6 +240,22 @@
 		}
 	};
 
+	const clampAngle = (event: Event) => {
+		const clampValues = [0, 90, 180, 270, 360];
+		const input = event.target as HTMLInputElement;
+		let value = parseInt(input.value);
+		if (isNaN(value) || value < 0) value = 0;
+		if (value > 360) value = 360;
+		const dividend = value / 90;
+		const shouldClamp = clampValues.some(clampVal => Math.abs(value - clampVal) <= 10);
+		//add near clamping to multiples of 90 (within 10 degrees)
+		if( shouldClamp) {
+			value = Math.round(value / 90) * 90;
+		}
+		imageRotation = value;
+		input.value = String(value);
+	};
+
 	let svgDisplay: HTMLDivElement;
 
 	const { setupSvg, updateSvg, setInnerSvg } = displaySvgD3();
@@ -272,7 +293,7 @@
 
 	$effect(() => {
 		if (svgElement) {
-			setInnerSvg({ svgElement: svgElement, imageWidth: imageWidth });
+			setInnerSvg({ svgElement: svgElement, imageWidth: imageWidth, imageRotation: imageRotation });
 		}
 	});
 </script>
@@ -313,7 +334,7 @@
 				<label
 					class="mt-5 inline-flex cursor-pointer items-center justify-center rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white shadow-sm transition focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--color-primary-strong)] hover:bg-[var(--color-primary-strong)]"
 				>
-					<span>Select SVG file</span>
+					<span class="text-white">Select SVG file</span>
 					<input type="file" accept=".svg" onchange={(e) => handleFileUpload(e)} class="sr-only" />
 				</label>
 			</div>
@@ -395,6 +416,37 @@
 						bind:value={imageWidth}
 						class="w-full accent-orange-500"
 					/>
+				</div>
+				
+				<div class="space-y-3">
+					<div
+						class="flex items-center justify-between text-sm font-medium text-[color:var(--color-text-secondary)]"
+					>
+						<span>Rotation Angle (°)</span>
+						<span class="text-xs font-semibold text-[color:var(--color-text-primary)]"
+							>{imageRotation}°</span
+						>
+					</div>
+					<div class="relative w-full">
+						<input
+							type="range"
+							min="0"
+							max="360"
+							bind:value={imageRotation}
+							oninput={clampAngle}
+							class="w-full accent-orange-500"
+						/>
+						<!-- Markers at 90, 180, 270-->
+						<div class="absolute left-0 w-full h-0 pointer-events-none">
+							{#each [90, 180, 270] as deg}
+								<span
+									class="absolute h-2 w-0.5 bg-orange-400 rounded"
+									style="left: calc((({deg} / 360) * (100% - 16px)) + 8px);"
+									aria-label="{deg}°"
+								></span>
+							{/each}
+						</div>
+					</div>
 				</div>
 
 				<div class="grid gap-3 sm:grid-cols-2">
