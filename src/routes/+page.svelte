@@ -4,6 +4,7 @@
 	import { getSvgPath } from 'figma-squircle';
 	import { displaySvgD3 } from './displaySvgD3';
 	import { fade } from 'svelte/transition';
+	import { track } from '@vercel/analytics';
 
 	let bgColorHex = $state<string>('#000000');
 	let borderRadius = $state<number>(70);
@@ -189,6 +190,7 @@
 	};
 
 	const copySvgWithBackground = async () => {
+		track('copy_svg_with_background');
 		const svgString = await createSvgWithBackground();
 		if (!svgString) {
 			showToast('Failed to copy SVG', 'error');
@@ -205,6 +207,7 @@
 	};
 
 	const downloadSvgWithBackground = async () => {
+		track('download_svg_with_background');
 		const svgString = await createSvgWithBackground();
 		if (!svgString) {
 			showToast('Failed to download SVG', 'error');

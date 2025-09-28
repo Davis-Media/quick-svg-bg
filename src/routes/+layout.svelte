@@ -2,6 +2,10 @@
 	import { Moon, Sun } from '@lucide/svelte';
 	import '../app.css';
 	let { children } = $props();
+	import { injectAnalytics } from '@vercel/analytics/sveltekit';
+	import { dev } from '$app/environment';
+
+	injectAnalytics({ mode: dev ? 'development' : 'production' });
 
 	let isDark = $state(true);
 
