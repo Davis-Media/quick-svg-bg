@@ -12,3 +12,7 @@
 @theme {
 	--font-geist: 'Geist', 'sans-serif';
 }
+
+body {
+	background-color: #181818;
+}
