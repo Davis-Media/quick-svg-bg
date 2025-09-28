@@ -15,7 +15,6 @@
 	let toastId = 0;
 
 	function showToast(message: string, type: 'success' | 'error' = 'success') {
-		console.log("called")
 		const id = ++toastId;
 		toasts.push({ id, message, type });
 		setTimeout(() => {
@@ -408,23 +407,22 @@
 			</div>
 		</div>
 	</section>
-
 </main>
 
-	{#each toasts as toast (toast.id)}
-		<div class="absolute top-4 right-4" transition:fade>
-			<div
-				class="flex items-center gap-3 rounded-lg border border-[color:var(--color-border)] bg-[var(--color-surface)] p-4 text-[color:var(--color-text-primary)] shadow-lg"
-			>
-				{#if toast.type === 'success'}
-					<Check class="h-5 w-5 text-green-600" />
-				{:else}
-					<X class="h-5 w-5 text-red-600" />
-				{/if}
-				<span>{toast.message}</span>
-			</div>
+{#each toasts as toast (toast.id)}
+	<div class="absolute top-4 right-4" transition:fade>
+		<div
+			class="flex items-center gap-3 rounded-lg border border-[color:var(--color-border)] bg-[var(--color-surface)] p-4 text-[color:var(--color-text-primary)] shadow-lg"
+		>
+			{#if toast.type === 'success'}
+				<Check class="h-5 w-5 text-green-600" />
+			{:else}
+				<X class="h-5 w-5 text-red-600" />
+			{/if}
+			<span>{toast.message}</span>
 		</div>
-	{/each}
+	</div>
+{/each}
 
 <style>
 	.dark-picker {
