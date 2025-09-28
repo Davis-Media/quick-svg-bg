@@ -1,13 +1,27 @@
 <script lang="ts">
 	import ColorPicker from 'svelte-awesome-color-picker';
-	import { Copy, Download } from '@lucide/svelte';
+	import { Copy, Download, Check, X } from '@lucide/svelte';
 	import { getSvgPath } from 'figma-squircle';
 	import { displaySvgD3 } from './displaySvgD3';
+	import { fade } from 'svelte/transition';
 
 	let bgColorHex = $state<string>('#000000');
 	let borderRadius = $state<number>(70);
 	let imageWidth = $state<number>(80);
 	let svgElement = $state<SVGElement | null>(null);
+
+	type Toast = { id: number; message: string; type: 'success' | 'error' };
+	let toasts = $state<Toast[]>([]);
+	let toastId = 0;
+
+	function showToast(message: string, type: 'success' | 'error' = 'success') {
+		console.log("called")
+		const id = ++toastId;
+		toasts.push({ id, message, type });
+		setTimeout(() => {
+			toasts = toasts.filter((t) => t.id !== id);
+		}, 3000);
+	}
 
 	const parseSvgContent = (svgContent: string) => {
 		const parser = new DOMParser();
@@ -105,7 +119,7 @@
 					target.value = '';
 				});
 		} else {
-			alert('Please upload an SVG file');
+			showToast('Please upload an SVG file', 'error');
 			target.value = '';
 		}
 	};
@@ -178,23 +192,23 @@
 	const copySvgWithBackground = async () => {
 		const svgString = await createSvgWithBackground();
 		if (!svgString) {
-			alert('Failed to copy SVG');
+			showToast('Failed to copy SVG', 'error');
 			return;
 		}
 
 		try {
 			await navigator.clipboard.writeText(svgString);
-			alert('SVG copied to clipboard!');
+			showToast('SVG copied to clipboard!', 'success');
 		} catch (error) {
 			console.error('Error copying SVG:', error);
-			alert('Failed to copy SVG');
+			showToast('Failed to copy SVG', 'error');
 		}
 	};
 
 	const downloadSvgWithBackground = async () => {
 		const svgString = await createSvgWithBackground();
 		if (!svgString) {
-			alert('Failed to download SVG');
+			showToast('Failed to download SVG', 'error');
 			return;
 		}
 
@@ -215,7 +229,7 @@
 			}, 100);
 		} catch (error) {
 			console.error('Error downloading SVG:', error);
-			alert('Failed to download SVG');
+			showToast('Failed to download SVG', 'error');
 		}
 	};
 
@@ -267,7 +281,6 @@
 </svelte:head>
 
 <main class="flex w-full flex-col gap-12">
-
 	<section class="grid grid-cols-1 gap-8 lg:grid-cols-2 xl:gap-12">
 		<div class="flex flex-col gap-6">
 			<div
@@ -281,7 +294,7 @@
 					<div
 						class="relative flex aspect-square w-full max-w-sm items-center justify-center overflow-hidden rounded-2xl border border-[color:var(--color-border)] bg-[var(--color-surface-muted)] shadow-inner sm:max-w-none"
 					>
-						<div bind:this={svgDisplay} ></div>
+						<div bind:this={svgDisplay}></div>
 					</div>
 				</div>
 			</div>
@@ -296,7 +309,7 @@
 					Choose a file or press ⌘V / Ctrl+V anywhere to paste.
 				</p>
 				<label
-					class="mt-5 inline-flex cursor-pointer items-center justify-center rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white shadow-sm transition  focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--color-primary-strong)] hover:bg-[var(--color-primary-strong)]"
+					class="mt-5 inline-flex cursor-pointer items-center justify-center rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white shadow-sm transition focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--color-primary-strong)] hover:bg-[var(--color-primary-strong)]"
 				>
 					<span>Select SVG file</span>
 					<input type="file" accept=".svg" onchange={(e) => handleFileUpload(e)} class="sr-only" />
@@ -395,7 +408,23 @@
 			</div>
 		</div>
 	</section>
+
 </main>
+
+	{#each toasts as toast (toast.id)}
+		<div class="absolute top-4 right-4" transition:fade>
+			<div
+				class="flex items-center gap-3 rounded-lg border border-[color:var(--color-border)] bg-[var(--color-surface)] p-4 text-[color:var(--color-text-primary)] shadow-lg"
+			>
+				{#if toast.type === 'success'}
+					<Check class="h-5 w-5 text-green-600" />
+				{:else}
+					<X class="h-5 w-5 text-red-600" />
+				{/if}
+				<span>{toast.message}</span>
+			</div>
+		</div>
+	{/each}
 
 <style>
 	.dark-picker {
