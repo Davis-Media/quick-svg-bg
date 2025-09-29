@@ -347,7 +347,7 @@
 				Customize the background
 			</h2>
 			<p class="text-sm text-[color:var(--color-text-secondary)]">
-				Tweak colors, border radius, and scale to match your brand.
+				Tweak colors, border radius, rotate and scale to match your brand.
 			</p>
 
 			<div class="mt-6 flex flex-col gap-6">
