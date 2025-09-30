@@ -93,8 +93,8 @@ export const displaySvgD3 = () => {
 		const scaledHeight = originalHeight * scaleY;
 
 		// Center of the scaled SVG
-		const centerX = viewBoxWidth / 2;
-		const centerY = viewBoxHeight / 2;
+		const centerX = originalWidth / 2;
+		const centerY = originalHeight / 2;
 
 		// Center the SVG in the background
 		const xOffset = (size - scaledWidth) / 2;
