@@ -10,6 +10,7 @@
 	let borderRadius = $state<number>(70);
 	let imageWidth = $state<number>(80);
 	let svgElement = $state<SVGElement | null>(null);
+	let imageRotation = $state<number>(0);
 
 	type Toast = { id: number; message: string; type: 'success' | 'error' };
 	let toasts = $state<Toast[]>([]);
@@ -23,10 +24,25 @@
 		}, 3000);
 	}
 
-	const parseSvgContent = (svgContent: string) => {
-		const parser = new DOMParser();
-		const doc = parser.parseFromString(svgContent, 'image/svg+xml');
-		return doc.documentElement as unknown as SVGElement;
+	const parseSvgContent = (svgContent: string): SVGElement | null => {
+		try {
+			const parser = new DOMParser();
+			const doc = parser.parseFromString(svgContent, 'image/svg+xml');
+			const parsedElement = doc.documentElement;
+
+			if (parsedElement.nodeName === 'parsererror') {
+				return null;
+			}
+
+			if (parsedElement.tagName.toLowerCase() !== 'svg') {
+				return null;
+			}
+
+			return parsedElement as unknown as SVGElement;
+		} catch (error) {
+			console.error('Error parsing SVG:', error);
+			return null;
+		}
 	};
 
 	$effect(() => {
@@ -34,60 +50,83 @@
 			const clipboardData = event.clipboardData;
 			if (!clipboardData) return;
 
-			// First try to get SVG directly
 			if (clipboardData.types.includes('image/svg+xml')) {
 				try {
 					const svgData = clipboardData.getData('image/svg+xml');
 					if (svgData) {
-						svgElement = parseSvgContent(svgData);
-						return;
+						const parsed = parseSvgContent(svgData);
+						if (parsed) {
+							svgElement = parsed;
+							showToast('SVG pasted successfully!', 'success');
+							return;
+						}
 					}
 				} catch (error) {
 					console.error('Error getting SVG data:', error);
 				}
 			}
 
-			// Try to get SVG from clipboard items
 			const items = clipboardData.items;
 
 			for (let i = 0; i < items.length; i++) {
 				const item = items[i];
 
-				// Check for SVG file or image
 				if (item.type === 'image/svg+xml') {
-					const blob = item.getAsFile();
-					if (blob) {
-						// Parse SVG content
-						const text = await blob.text();
-						svgElement = parseSvgContent(text);
-						return;
+					try {
+						const blob = item.getAsFile();
+						if (blob) {
+							const text = await blob.text();
+							const parsed = parseSvgContent(text);
+							if (parsed) {
+								svgElement = parsed;
+								showToast('SVG pasted successfully!', 'success');
+								return;
+							}
+						}
+					} catch (error) {
+						console.error('Error parsing SVG blob:', error);
 					}
 				}
 			}
 
-			// Check for SVG text content
 			const text = clipboardData.getData('text/plain');
 			if (text) {
 				const trimmedText = text.trim();
 
-				if (trimmedText.startsWith('<svg') && trimmedText.includes('</svg>')) {
-					svgElement = parseSvgContent(text);
-					return;
+				if (trimmedText.includes('<svg') && trimmedText.includes('</svg>')) {
+					const parsed = parseSvgContent(text);
+					if (parsed) {
+						svgElement = parsed;
+						showToast('SVG pasted successfully!', 'success');
+						return;
+					} else {
+						showToast('Invalid SVG format', 'error');
+						return;
+					}
 				}
 
-				// Check if the text is a URL to an SVG file
 				if (trimmedText.match(/^https?:\/\/.*\.svg$/i)) {
 					try {
 						const response = await fetch(trimmedText);
 						if (response.ok) {
 							const svgText = await response.text();
-							if (svgText.trim().startsWith('<svg')) {
-								svgElement = parseSvgContent(svgText);
+							const parsed = parseSvgContent(svgText);
+							if (parsed) {
+								svgElement = parsed;
+								showToast('SVG loaded from URL!', 'success');
+								return;
+							} else {
+								showToast('URL does not contain valid SVG', 'error');
 								return;
 							}
+						} else {
+							showToast('Failed to fetch SVG from URL', 'error');
+							return;
 						}
 					} catch (error) {
 						console.error('Error fetching SVG from URL:', error);
+						showToast('Error fetching SVG from URL', 'error');
+						return;
 					}
 				}
 			}
@@ -107,20 +146,30 @@
 	) => {
 		const target = event.target as HTMLInputElement;
 		const file = target.files?.[0];
-		if (file && file.type === 'image/svg+xml') {
-			file
-				.text()
-				.then((text) => {
-					const parser = new DOMParser();
-					const doc = parser.parseFromString(text, 'image/svg+xml');
-					svgElement = doc.documentElement as unknown as SVGElement;
-				})
-				.finally(() => {
-					target.value = '';
-				});
-		} else {
-			showToast('Please upload an SVG file', 'error');
-			target.value = '';
+		if (file) {
+			if (file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg')) {
+				file
+					.text()
+					.then((text) => {
+						const parsed = parseSvgContent(text);
+						if (parsed) {
+							svgElement = parsed;
+							showToast('SVG uploaded successfully!', 'success');
+						} else {
+							showToast('Invalid SVG file format', 'error');
+						}
+					})
+					.catch((error) => {
+						console.error('Error reading SVG file:', error);
+						showToast('Error reading SVG file', 'error');
+					})
+					.finally(() => {
+						target.value = '';
+					});
+			} else {
+				showToast('Please upload an SVG file', 'error');
+				target.value = '';
+			}
 		}
 	};
 
@@ -152,6 +201,8 @@
 		];
 		const originalWidth = originalViewBox[2];
 		const originalHeight = originalViewBox[3];
+		const viewBoxMinX = originalViewBox[0];
+		const viewBoxMinY = originalViewBox[1];
 
 		// Calculate scale factor based on image width percentage
 		const scaleFactor = imageWidth / 100;
@@ -175,13 +226,20 @@
 		const scaledWidth = originalWidth * scaleX;
 		const scaledHeight = originalHeight * scaleY;
 
+		// Center of the scaled SVG
+		const centerX = originalWidth / 2;
+		const centerY = originalHeight / 2;
+
 		// Center the SVG in the background
 		const xOffset = (size - scaledWidth) / 2;
 		const yOffset = (size - scaledHeight) / 2;
 
 		// Add the original SVG content in a group with transform
 		const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-		g.setAttribute('transform', `translate(${xOffset}, ${yOffset}) scale(${scaleX}, ${scaleY})`);
+		g.setAttribute(
+			'transform',
+			`translate(${xOffset - viewBoxMinX * scaleX}, ${yOffset - viewBoxMinY * scaleY}) scale(${scaleX}, ${scaleY}) rotate(${imageRotation}, ${centerX}, ${centerY})`
+		);
 		g.innerHTML = svgElement.innerHTML;
 		newSvg.appendChild(g);
 
@@ -235,6 +293,42 @@
 		}
 	};
 
+	const clampAngle = (event: Event) => {
+		const clampValues = [0, 90, 180, 270, 360];
+		const input = event.target as HTMLInputElement;
+		let value = parseInt(input.value);
+		if (isNaN(value) || value < 0) value = 0;
+		if (value > 360) value = 360;
+		const dividend = value / 90;
+		const shouldClamp = clampValues.some((clampVal) => Math.abs(value - clampVal) <= 10);
+		//add near clamping to multiples of 90 (within 10 degrees)
+		if (shouldClamp) {
+			value = Math.round(value / 90) * 90;
+		}
+		imageRotation = value;
+		input.value = String(value);
+	};
+
+	const clampValue = (value: number, min: number, max: number) => {
+		if (isNaN(value)) return min;
+		return Math.min(Math.max(value, min), max);
+	};
+
+	const handleBorderRadiusInput = (event: Event) => {
+		const input = event.target as HTMLInputElement;
+		borderRadius = clampValue(parseInt(input.value), 0, 200);
+	};
+
+	const handleImageWidthInput = (event: Event) => {
+		const input = event.target as HTMLInputElement;
+		imageWidth = clampValue(parseInt(input.value), 10, 100);
+	};
+
+	const handleRotationInput = (event: Event) => {
+		const input = event.target as HTMLInputElement;
+		imageRotation = clampValue(parseInt(input.value), 0, 360);
+	};
+
 	let svgDisplay: HTMLDivElement;
 
 	const { setupSvg, updateSvg, setInnerSvg } = displaySvgD3();
@@ -272,7 +366,7 @@
 
 	$effect(() => {
 		if (svgElement) {
-			setInnerSvg({ svgElement: svgElement, imageWidth: imageWidth });
+			setInnerSvg({ svgElement: svgElement, imageWidth: imageWidth, imageRotation: imageRotation });
 		}
 	});
 </script>
@@ -313,7 +407,7 @@
 				<label
 					class="mt-5 inline-flex cursor-pointer items-center justify-center rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white shadow-sm transition focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--color-primary-strong)] hover:bg-[var(--color-primary-strong)]"
 				>
-					<span>Select SVG file</span>
+					<span class="text-white">Select SVG file</span>
 					<input type="file" accept=".svg" onchange={(e) => handleFileUpload(e)} class="sr-only" />
 				</label>
 			</div>
@@ -326,7 +420,7 @@
 				Customize the background
 			</h2>
 			<p class="text-sm text-[color:var(--color-text-secondary)]">
-				Tweak colors, border radius, and scale to match your brand.
+				Tweak colors, border radius, rotate and scale to match your brand.
 			</p>
 
 			<div class="mt-6 flex flex-col gap-6">
@@ -366,9 +460,17 @@
 						class="flex items-center justify-between text-sm font-medium text-[color:var(--color-text-secondary)]"
 					>
 						<span>Border radius</span>
-						<span class="text-xs font-semibold text-[color:var(--color-text-primary)]"
-							>{borderRadius}px</span
-						>
+						<div class="flex items-center gap-1">
+							<input
+								type="number"
+								min="0"
+								max="200"
+								bind:value={borderRadius}
+								oninput={handleBorderRadiusInput}
+								class="w-16 rounded-lg border border-[color:var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-1 text-xs font-semibold text-[color:var(--color-text-primary)] focus:ring-2 focus:ring-orange-500 focus:outline-none"
+							/>
+							<span class="text-xs text-[color:var(--color-text-secondary)]">px</span>
+						</div>
 					</div>
 					<input
 						type="range"
@@ -384,9 +486,17 @@
 						class="flex items-center justify-between text-sm font-medium text-[color:var(--color-text-secondary)]"
 					>
 						<span>Image width</span>
-						<span class="text-xs font-semibold text-[color:var(--color-text-primary)]"
-							>{imageWidth}%</span
-						>
+						<div class="flex items-center gap-1">
+							<input
+								type="number"
+								min="10"
+								max="100"
+								bind:value={imageWidth}
+								oninput={handleImageWidthInput}
+								class="w-16 rounded-lg border border-[color:var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-1 text-xs font-semibold text-[color:var(--color-text-primary)] focus:ring-2 focus:ring-orange-500 focus:outline-none"
+							/>
+							<span class="text-xs text-[color:var(--color-text-secondary)]">%</span>
+						</div>
 					</div>
 					<input
 						type="range"
@@ -395,6 +505,44 @@
 						bind:value={imageWidth}
 						class="w-full accent-orange-500"
 					/>
+				</div>
+
+				<div class="space-y-3">
+					<div
+						class="flex items-center justify-between text-sm font-medium text-[color:var(--color-text-secondary)]"
+					>
+						<span>Rotation Angle (°)</span>
+						<div class="flex items-center gap-1">
+							<input
+								type="number"
+								min="0"
+								max="360"
+								bind:value={imageRotation}
+								oninput={handleRotationInput}
+								class="w-16 rounded-lg border border-[color:var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-1 text-xs font-semibold text-[color:var(--color-text-primary)] focus:ring-2 focus:ring-orange-500 focus:outline-none"
+							/>
+							<span class="text-xs text-[color:var(--color-text-secondary)]">°</span>
+						</div>
+					</div>
+					<div class="relative w-full">
+						<input
+							type="range"
+							min="0"
+							max="360"
+							bind:value={imageRotation}
+							oninput={clampAngle}
+							class="w-full accent-orange-500"
+						/>
+						<div class="pointer-events-none absolute left-0 h-0 w-full">
+							{#each [90, 180, 270] as deg}
+								<span
+									class="absolute h-2 w-0.5 rounded bg-orange-400"
+									style="left: calc((({deg} / 360) * (100% - 16px)) + 8px);"
+									aria-label="{deg}°"
+								></span>
+							{/each}
+						</div>
+					</div>
 				</div>
 
 				<div class="grid gap-3 sm:grid-cols-2">
