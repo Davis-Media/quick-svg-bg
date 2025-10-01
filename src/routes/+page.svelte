@@ -392,14 +392,17 @@
 					</div>
 				</div>
 			</div>
-
+		</div>
+		<div
+			class="rounded-3xl border border-[color:var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)]"
+		>
 			<div
-				class="rounded-3xl border border-dashed border-[color:var(--color-border)] bg-[var(--color-surface)] p-6 text-center shadow-sm"
+				class="mb-4 rounded-xl border border-dashed border-[color:var(--color-border)] bg-[var(--color-surface)] p-4 text-center shadow-sm"
 			>
 				<h3 class="text-base font-medium text-[color:var(--color-text-primary)]">
 					Upload or paste an SVG
 				</h3>
-				<p class="mt-2 text-sm text-[color:var(--color-text-secondary)]">
+				<p class="mt-1 text-sm text-[color:var(--color-text-secondary)]">
 					Choose a file or press ⌘V / Ctrl+V anywhere to paste.
 				</p>
 				<label
@@ -409,11 +412,6 @@
 					<input type="file" accept=".svg" onchange={(e) => handleFileUpload(e)} class="sr-only" />
 				</label>
 			</div>
-		</div>
-
-		<div
-			class="rounded-3xl border border-[color:var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)]"
-		>
 			<h2 class="text-lg font-semibold text-[color:var(--color-text-primary)]">
 				Customize the background
 			</h2>
@@ -427,7 +425,7 @@
 						class="text-xs font-semibold tracking-[0.2em] text-[color:var(--color-text-secondary)] uppercase"
 						>Color</span
 					>
-					<div class="mt-3 flex flex-wrap items-center gap-3">
+					<div class="mt-1 flex flex-wrap items-center gap-3">
 						<button
 							class={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] ${swatchClasses(bgColorHex === '#ffffff')}`}
 							onclick={() => (bgColorHex = '#ffffff')}
@@ -453,7 +451,7 @@
 					</div>
 				</div>
 
-				<div class="space-y-3">
+				<div class="space-y-1">
 					<div
 						class="flex items-center justify-between text-sm font-medium text-[color:var(--color-text-secondary)]"
 					>
@@ -479,7 +477,7 @@
 					/>
 				</div>
 
-				<div class="space-y-3">
+				<div class="space-y-1">
 					<div
 						class="flex items-center justify-between text-sm font-medium text-[color:var(--color-text-secondary)]"
 					>
@@ -505,7 +503,7 @@
 					/>
 				</div>
 
-				<div class="space-y-3">
+				<div class="space-y-1">
 					<div
 						class="flex items-center justify-between text-sm font-medium text-[color:var(--color-text-secondary)]"
 					>
