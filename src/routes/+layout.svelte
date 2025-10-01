@@ -68,7 +68,7 @@
 	</header>
 
 	<div class="relative z-10 flex grow flex-col">
-		<div class="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+		<div class="mx-auto w-full max-w-6xl px-2 py-8 sm:px-6 lg:px-8">
 			{@render children()}
 		</div>
 	</div>
